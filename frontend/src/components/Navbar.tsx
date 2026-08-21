@@ -13,6 +13,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { NetworkStatus } from "./NetworkStatus";
+import { MetaMaskButton } from "./MetaMaskButton";
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -82,7 +83,8 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Right Action & Status */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <MetaMaskButton />
             <NetworkStatus />
 
             {/* Mobile menu toggle */}
