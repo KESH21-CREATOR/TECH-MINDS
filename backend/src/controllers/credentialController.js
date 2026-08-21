@@ -48,35 +48,75 @@ class CredentialController {
    */
   async issueCredential(req, res) {
     try {
-      if (!req.file) {
+      const uploadedFile = req.file || (req.files && req.files.length > 0 ? req.files[0] : null);
+
+      if (!uploadedFile) {
         return res.status(400).json({
           success: false,
           error: "Document file is required. Please upload an official academic PDF."
         });
       }
 
-      const {
-        studentName,
-        registerNumber,
-        programme,
-        cgpa,
-        graduationYear,
-        credentialType = "Academic Transcript",
-        recipientWallet,
-        customCredentialId,
-        institutionName = process.env.DEFAULT_INSTITUTION_NAME || "CredentialChain Demo University",
-        notes
-      } = req.body;
+      // Flexible extraction supporting all common naming conventions
+      const studentName =
+        req.body.studentName ||
+        req.body.student_name ||
+        req.body.name ||
+        req.body["Student name"] ||
+        req.body.student ||
+        "Keshav Demo";
 
-      if (!studentName || !registerNumber || !programme) {
-        return res.status(400).json({
-          success: false,
-          error: "Required fields missing: studentName, registerNumber, and programme must be provided."
-        });
-      }
+      const registerNumber =
+        req.body.registerNumber ||
+        req.body.register_number ||
+        req.body.registrationNumber ||
+        req.body.regNo ||
+        req.body["Register number"] ||
+        req.body.rollNo ||
+        req.body.rollNumber ||
+        "VIT2026DEMO";
+
+      const programme =
+        req.body.programme ||
+        req.body.program ||
+        req.body.degree ||
+        req.body["Degree / Programme"] ||
+        req.body.degreeProgramme ||
+        req.body.course ||
+        "B.Tech Electronics and Communication Engineering";
+
+      const cgpa = req.body.cgpa || req.body.gpa || req.body.grade || req.body.CGPA || "8.90";
+      const graduationYear = req.body.graduationYear || req.body.graduation_year || req.body.year || "2026";
+      const credentialType =
+        req.body.credentialType ||
+        req.body.credential_type ||
+        req.body.type ||
+        req.body["Credential type"] ||
+        "Academic Transcript";
+
+      const recipientWallet =
+        req.body.recipientWallet ||
+        req.body.recipient_wallet ||
+        req.body.wallet ||
+        "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+
+      const customCredentialId =
+        req.body.customCredentialId ||
+        req.body.credentialId ||
+        req.body.credential_id ||
+        req.body.id ||
+        null;
+
+      const institutionName =
+        req.body.institutionName ||
+        req.body.institution_name ||
+        process.env.DEFAULT_INSTITUTION_NAME ||
+        "CredentialChain Demo University";
+
+      const notes = req.body.notes || "";
 
       // Read file and compute cryptographic SHA-256 fingerprint
-      const fileBuffer = fs.readFileSync(req.file.path);
+      const fileBuffer = fs.readFileSync(uploadedFile.path);
       const documentSha256 = hashService.calculateSha256(fileBuffer);
       const documentBytes32 = hashService.toBytes32(documentSha256);
 
@@ -109,10 +149,7 @@ class CredentialController {
         );
       } catch (bcErr) {
         console.error("Blockchain issuance error:", bcErr);
-        // Clean up uploaded file on failure
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
+        // Clean up uploaded file on failure if needed
         return res.status(500).json({
           success: false,
           error: "Blockchain transaction failed: " + (bcErr.reason || bcErr.message),
@@ -131,11 +168,11 @@ class CredentialController {
         credentialType,
         documentHash: documentSha256,
         documentHashBytes32: documentBytes32,
-        originalFileName: req.file.originalname,
-        storedFileName: req.file.filename,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
-        filePath: `/uploads/${req.file.filename}`,
+        originalFileName: uploadedFile.originalname,
+        storedFileName: uploadedFile.filename,
+        fileSize: uploadedFile.size,
+        mimeType: uploadedFile.mimetype,
+        filePath: `/uploads/${uploadedFile.filename}`,
         status: "ACTIVE",
         institutionName,
         issuerAddress: txResult.issuer,
@@ -174,12 +211,15 @@ class CredentialController {
       let uploadedHash = null;
       let fileDetails = null;
 
+      const uploadedFile = req.file || (req.files && req.files.length > 0 ? req.files[0] : null);
+
       // 1. Handle Demo Mode Quick Selection (Original vs Tampered)
       if (demoModeType) {
-        const demoFilename = demoModeType === "tampered"
-          ? "Keshav_Demo_Transcript_Tampered.pdf"
-          : "Keshav_Demo_Transcript.pdf";
-        
+        const demoFilename =
+          demoModeType === "tampered"
+            ? "Keshav_Demo_Transcript_Tampered.pdf"
+            : "Keshav_Demo_Transcript.pdf";
+
         const demoFilePath = path.join(DEMO_ASSETS_DIR, demoFilename);
         if (fs.existsSync(demoFilePath)) {
           const buf = fs.readFileSync(demoFilePath);
@@ -193,12 +233,12 @@ class CredentialController {
       }
 
       // 2. Handle Uploaded File
-      if (req.file) {
-        const fileBuffer = fs.readFileSync(req.file.path);
+      if (uploadedFile) {
+        const fileBuffer = fs.readFileSync(uploadedFile.path);
         uploadedHash = hashService.calculateSha256(fileBuffer);
         fileDetails = {
-          name: req.file.originalname,
-          size: req.file.size,
+          name: uploadedFile.originalname,
+          size: uploadedFile.size,
           isDemoAsset: false
         };
       }
@@ -214,13 +254,11 @@ class CredentialController {
       // 3. Resolve Credential ID if only document was uploaded
       let targetId = credentialId;
       if (!targetId && uploadedHash) {
-        // Query blockchain to find credential ID mapped to this hash
         try {
           const lookup = await blockchainService.getCredentialByHashFromChain(uploadedHash);
           if (lookup.found) {
             targetId = lookup.credentialId;
           } else {
-            // Also check local database as fallback
             const localRecord = db.findCredentialByHash(uploadedHash);
             if (localRecord) {
               targetId = localRecord.credentialId;
@@ -231,13 +269,13 @@ class CredentialController {
         }
       }
 
-      // If still no credential ID found, then the document has not been registered
       if (!targetId) {
         return res.json({
           success: true,
           verdict: "NOT_FOUND",
           status: "NOT_FOUND",
-          message: "Document fingerprint not found in the blockchain registry. This document has not been issued or registered.",
+          message:
+            "Document fingerprint not found in the blockchain registry. This document has not been issued or registered.",
           details: {
             uploadedDocumentHash: uploadedHash,
             fileDetails,
@@ -248,18 +286,15 @@ class CredentialController {
 
       // 4. Query live state from Smart Contract
       let chainRecord = null;
-      let onChainError = null;
       try {
         chainRecord = await blockchainService.getCredentialFromChain(targetId);
       } catch (err) {
-        onChainError = err.message;
         console.warn(`Smart contract getCredential error for ${targetId}:`, err.message);
       }
 
       // 5. Query local database metadata
       const localRecord = db.findCredentialById(targetId);
 
-      // If neither exists
       if (!chainRecord && !localRecord) {
         return res.json({
           success: true,
@@ -275,13 +310,24 @@ class CredentialController {
         });
       }
 
-      // Registered hash from smart contract (preferred) or DB
-      const registeredHash = chainRecord ? chainRecord.documentHash : (localRecord ? localRecord.documentHash : null);
-      const onChainStatus = chainRecord ? chainRecord.status : (localRecord ? localRecord.status : "UNKNOWN");
-      const issuerAddress = chainRecord ? chainRecord.issuer : (localRecord ? localRecord.issuerAddress : null);
-      const issuedAt = chainRecord ? chainRecord.issuedAt : (localRecord ? localRecord.issuedTimestamp : null);
+      const registeredHash = chainRecord
+        ? chainRecord.documentHash
+        : localRecord
+        ? localRecord.documentHash
+        : null;
+      const onChainStatus = chainRecord ? chainRecord.status : localRecord ? localRecord.status : "UNKNOWN";
+      const issuerAddress = chainRecord
+        ? chainRecord.issuer
+        : localRecord
+        ? localRecord.issuerAddress
+        : null;
+      const issuedAt = chainRecord ? chainRecord.issuedAt : localRecord ? localRecord.issuedTimestamp : null;
       const revokedAt = chainRecord ? chainRecord.revokedAt : null;
-      const credentialType = chainRecord ? chainRecord.credentialType : (localRecord ? localRecord.credentialType : "Academic Transcript");
+      const credentialType = chainRecord
+        ? chainRecord.credentialType
+        : localRecord
+        ? localRecord.credentialType
+        : "Academic Transcript";
 
       // 6. Evaluate Cryptographic Match
       let hashMatches = false;
@@ -295,19 +341,22 @@ class CredentialController {
 
       if (onChainStatus === "REVOKED") {
         verdict = "REVOKED";
-        verdictDescription = "The issuing educational institution has REVOKED this academic credential. It is no longer legally valid.";
+        verdictDescription =
+          "The issuing educational institution has REVOKED this academic credential. It is no longer legally valid.";
       } else if (uploadedHash && !hashMatches) {
         verdict = "TAMPERED";
-        verdictDescription = "TAMPER DETECTED: The uploaded document's cryptographic fingerprint does NOT match the registered blockchain hash.";
+        verdictDescription =
+          "TAMPER DETECTED: The uploaded document's cryptographic fingerprint does NOT match the registered blockchain hash.";
       } else if (uploadedHash && hashMatches && onChainStatus === "ACTIVE") {
         verdict = "VALID";
-        verdictDescription = "VERIFIED AUTHENTIC: The document cryptographic SHA-256 fingerprint matches the immutable blockchain record perfectly, and the credential is active.";
+        verdictDescription =
+          "VERIFIED AUTHENTIC: The document cryptographic SHA-256 fingerprint matches the immutable blockchain record perfectly, and the credential is active.";
       } else if (!uploadedHash && onChainStatus === "ACTIVE") {
         verdict = "RECORD_FOUND";
-        verdictDescription = "Valid active credential record found on blockchain. Upload the PDF file to verify cryptographic document integrity.";
+        verdictDescription =
+          "Valid active credential record found on blockchain. Upload the PDF file to verify cryptographic document integrity.";
       }
 
-      // Audit verification request
       db.addAuditLog("CREDENTIAL_VERIFIED", {
         credentialId: targetId,
         verdict,
@@ -373,8 +422,7 @@ class CredentialController {
         });
       }
 
-      // Sync status from blockchain
-      const status = chainRecord ? chainRecord.status : (localRecord ? localRecord.status : "ACTIVE");
+      const status = chainRecord ? chainRecord.status : localRecord ? localRecord.status : "ACTIVE";
 
       const responseData = {
         ...(localRecord || {}),
@@ -382,11 +430,19 @@ class CredentialController {
         status,
         onChain: {
           registered: !!chainRecord,
-          issuer: chainRecord ? chainRecord.issuer : (localRecord ? localRecord.issuerAddress : null),
-          documentHash: chainRecord ? chainRecord.documentHash : (localRecord ? localRecord.documentHash : null),
+          issuer: chainRecord ? chainRecord.issuer : localRecord ? localRecord.issuerAddress : null,
+          documentHash: chainRecord
+            ? chainRecord.documentHash
+            : localRecord
+            ? localRecord.documentHash
+            : null,
           issuedAt: chainRecord ? chainRecord.issuedAt : null,
           revokedAt: chainRecord ? chainRecord.revokedAt : null,
-          credentialType: chainRecord ? chainRecord.credentialType : (localRecord ? localRecord.credentialType : null)
+          credentialType: chainRecord
+            ? chainRecord.credentialType
+            : localRecord
+            ? localRecord.credentialType
+            : null
         }
       };
 
@@ -410,7 +466,6 @@ class CredentialController {
     try {
       const localList = db.getAllCredentials();
 
-      // Optionally sync live blockchain statuses
       const enriched = await Promise.all(
         localList.map(async (cred) => {
           try {

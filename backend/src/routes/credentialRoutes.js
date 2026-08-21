@@ -1,18 +1,18 @@
 const express = require("express");
 const router = express.Router();
 const credentialController = require("../controllers/credentialController");
-const { upload, memoryUpload } = require("../services/storageService");
+const { upload } = require("../services/storageService");
 
 // Health check
 router.get("/health", (req, res) => credentialController.getHealth(req, res));
 
-// Credential Issuance
-router.post("/credentials/issue", upload.single("document"), (req, res) =>
+// Credential Issuance (supports any file field name: document, file, pdf, etc.)
+router.post("/credentials/issue", upload.any(), (req, res) =>
   credentialController.issueCredential(req, res)
 );
 
-// Credential Verification (supports disk/memory upload)
-router.post("/credentials/verify", upload.single("document"), (req, res) =>
+// Credential Verification (supports any file field name: document, file, pdf, etc.)
+router.post("/credentials/verify", upload.any(), (req, res) =>
   credentialController.verifyCredential(req, res)
 );
 
