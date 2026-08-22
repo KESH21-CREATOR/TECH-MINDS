@@ -76,8 +76,12 @@ export const IssueCredential: React.FC = () => {
     }
   };
 
-  // Prefill Demo Data (Keshav Demo)
+  // Prefill Demo Data (Keshav Demo) - Generates a fresh unique demo record each time
   const handlePrefillDemo = async () => {
+    setErrorMessage(null);
+    const randSuffix = Math.floor(1000 + Math.random() * 9000);
+    const newCredId = `CRED-2026-VITDEMO-${randSuffix}`;
+
     setStudentName("Keshav Demo");
     setRegisterNumber("VIT2026DEMO");
     setProgramme("B.Tech Electronics and Communication Engineering");
@@ -85,15 +89,22 @@ export const IssueCredential: React.FC = () => {
     setGraduationYear("2026");
     setCredentialType("Academic Transcript");
     setRecipientWallet("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
-    setCustomCredentialId("CRED-2026-VITDEMO-001");
-    setNotes("Official transcript issued for hackathon verification demonstration.");
+    setCustomCredentialId(newCredId);
+    setNotes(`Official transcript issued for demo session #${randSuffix}.`);
 
-    // Fetch authentic demo PDF blob to attach to file input automatically
+    // Fetch authentic demo PDF and append unique metadata timestamp so each demo issuance produces a fresh, unique on-chain hash
     try {
       const res = await fetch("/demo-assets/Keshav_Demo_Transcript.pdf");
       if (res.ok) {
-        const blob = await res.blob();
-        const demoFile = new File([blob], "Keshav_Demo_Transcript.pdf", { type: "application/pdf" });
+        const arrayBuf = await res.arrayBuffer();
+        // Append a unique invisible comment trailer to produce a fresh unique cryptographic SHA-256
+        const trailer = new TextEncoder().encode(`\n% Demo Issuance Ref: ${newCredId} - ${Date.now()}\n`);
+        const combined = new Uint8Array(arrayBuf.byteLength + trailer.byteLength);
+        combined.set(new Uint8Array(arrayBuf), 0);
+        combined.set(trailer, arrayBuf.byteLength);
+
+        const demoBlob = new Blob([combined], { type: "application/pdf" });
+        const demoFile = new File([demoBlob], `Keshav_Demo_Transcript_${randSuffix}.pdf`, { type: "application/pdf" });
         await handleFileChange(demoFile);
       }
     } catch (e) {
@@ -115,17 +126,16 @@ export const IssueCredential: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("document", file);
-      formData.append("studentName", studentName);
-      formData.append("registerNumber", registerNumber);
-      formData.append("programme", programme);
-      formData.append("cgpa", cgpa);
-      formData.append("graduationYear", graduationYear);
-      formData.append("credentialType", credentialType);
+      formData.append("studentName", studentName || "Keshav Demo");
+      formData.append("registerNumber", registerNumber || "VIT2026DEMO");
+      formData.append("programme", programme || "B.Tech Electronics and Communication Engineering");
+      formData.append("cgpa", cgpa || "8.90");
+      formData.append("graduationYear", graduationYear || "2026");
+      formData.append("credentialType", credentialType || "Academic Transcript");
       if (recipientWallet) formData.append("recipientWallet", recipientWallet);
       if (customCredentialId) formData.append("customCredentialId", customCredentialId);
       if (notes) formData.append("notes", notes);
 
-      // Transition step animation
       setTimeout(() => setCurrentStep(2), 600); // Smart Contract submission
 
       const response = await api.issueCredential(formData);
@@ -458,10 +468,10 @@ export const IssueCredential: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Custom Credential ID (Optional)</label>
+                <label className="block text-slate-300 font-medium mb-1">Credential ID (Auto-Generated or Custom)</label>
                 <input
                   type="text"
-                  placeholder="Auto-generated if blank"
+                  placeholder="Auto-generated unique ID"
                   value={customCredentialId}
                   onChange={(e) => setCustomCredentialId(e.target.value)}
                   className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 font-mono focus:outline-none focus:border-brand-500"
