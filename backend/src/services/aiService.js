@@ -135,16 +135,53 @@ class AIService {
   }
 
   /**
-   * Finds matching knowledge topic using keyword relevance
+   * Finds matching knowledge topic using smart multi-token and phrase relevance
    */
   findMatchingKnowledge(query) {
+    const cleanQuery = query.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").trim();
+    const queryWords = cleanQuery.split(/\s+/).filter((w) => w.length > 2);
+
+    let bestMatch = null;
+    let highestScore = 0;
+
     for (const topic of KNOWLEDGE_TOPICS) {
+      let score = 0;
+
+      // 1. Exact phrase match in keywords (very high weight)
       for (const kw of topic.keywords) {
-        if (query.includes(kw)) {
-          return topic;
+        const cleanKw = kw.toLowerCase().trim();
+        if (cleanQuery.includes(cleanKw) || cleanKw.includes(cleanQuery)) {
+          score += 15;
+        } else {
+          // Check word overlap with keywords
+          const kwWords = cleanKw.split(/\s+/).filter((w) => w.length > 2);
+          const matchedKwWords = kwWords.filter((w) => queryWords.includes(w));
+          if (matchedKwWords.length >= 2) {
+            score += matchedKwWords.length * 3;
+          }
         }
       }
+
+      // 2. Token overlap match
+      if (topic.tokens) {
+        for (const token of topic.tokens) {
+          if (queryWords.includes(token.toLowerCase())) {
+            score += 2;
+          }
+        }
+      }
+
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = topic;
+      }
     }
+
+    // Require a minimum confidence score
+    if (highestScore >= 3) {
+      return bestMatch;
+    }
+
     return null;
   }
 
