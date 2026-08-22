@@ -219,6 +219,59 @@ class AuthController {
       });
     }
   }
+
+  /**
+   * Update authenticated user profile (e.g. avatarUrl, name, wallet)
+   * PUT /api/auth/profile
+   */
+  async updateProfile(req, res) {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized."
+        });
+      }
+
+      const token = authHeader.split(" ")[1];
+      const decoded = authService.verifyToken(token);
+
+      if (!decoded) {
+        return res.status(401).json({
+          success: false,
+          error: "Session expired."
+        });
+      }
+
+      const { avatarUrl, name, walletAddress } = req.body;
+      const updates = {};
+      if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
+      if (name && name.trim()) updates.name = name.trim();
+      if (walletAddress !== undefined) updates.walletAddress = walletAddress;
+
+      const updatedUser = db.updateUser(decoded.id, updates);
+      if (!updatedUser) {
+        return res.status(404).json({
+          success: false,
+          error: "User record not found."
+        });
+      }
+
+      db.addAuditLog("USER_PROFILE_UPDATED", { userId: decoded.id, updates });
+
+      return res.json({
+        success: true,
+        message: "Profile updated successfully.",
+        user: authService.sanitizeUser(updatedUser)
+      });
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        error: err.message || "Failed to update profile."
+      });
+    }
+  }
 }
 
 module.exports = new AuthController();

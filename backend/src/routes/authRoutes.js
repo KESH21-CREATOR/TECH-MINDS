@@ -14,4 +14,7 @@ router.post("/demo-login", (req, res) => authController.demoLogin(req, res));
 // Get Current User Profile
 router.get("/me", (req, res) => authController.getMe(req, res));
 
+// Update Profile
+router.put("/profile", (req, res) => authController.updateProfile(req, res));
+
 module.exports = router;

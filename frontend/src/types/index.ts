@@ -7,6 +7,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  avatarUrl?: string;
   institutionName?: string;
   institutionCode?: string;
   registerNumber?: string;
@@ -35,6 +36,7 @@ export interface SignUpCredentials {
   email: string;
   password?: string;
   role: UserRole;
+  avatarUrl?: string;
   institutionName?: string;
   institutionCode?: string;
   registerNumber?: string;

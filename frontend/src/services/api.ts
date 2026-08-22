@@ -100,6 +100,14 @@ export const api = {
     return request<{ success: boolean; user: User }>("/auth/me", { headers });
   },
 
+  updateProfile: (updates: Partial<User>): Promise<{ success: boolean; user: User; message: string }> => {
+    return request<{ success: boolean; user: User; message: string }>("/auth/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates)
+    });
+  },
+
   // Health Check
   getHealth: (): Promise<HealthStatus> => {
     return request<HealthStatus>("/health");
