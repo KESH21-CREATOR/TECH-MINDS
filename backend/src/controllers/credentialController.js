@@ -44,7 +44,7 @@ class CredentialController {
   }
 
   /**
-   * Issue a new credential
+   * Issue a new credential (Supports ANY custom user PDF)
    * POST /api/credentials/issue
    */
   async issueCredential(req, res) {
@@ -109,27 +109,57 @@ class CredentialController {
 
       const notes = req.body.notes || "";
 
-      // Read file and compute cryptographic SHA-256 fingerprint
+      // Exact cryptographic SHA-256 fingerprint of the uploaded PDF file
       const fileBuffer = fs.readFileSync(uploadedFile.path);
-      let documentSha256 = hashService.calculateSha256(fileBuffer);
-      let documentBytes32 = hashService.toBytes32(documentSha256);
+      const documentSha256 = hashService.calculateSha256(fileBuffer);
+      const documentBytes32 = hashService.toBytes32(documentSha256);
 
-      // Generate unique credential ID ensuring zero duplicate collisions
+      // Check if this EXACT document hash has already been registered on-chain
+      try {
+        const existingLookup = await blockchainService.getCredentialByHashFromChain(documentSha256);
+        if (existingLookup && existingLookup.found) {
+          const existingLocal = db.findCredentialById(existingLookup.credentialId) || {
+            credentialId: existingLookup.credentialId,
+            studentName,
+            registerNumber,
+            programme,
+            cgpa,
+            graduationYear,
+            credentialType,
+            documentHash: documentSha256,
+            documentHashBytes32: documentBytes32,
+            originalFileName: uploadedFile.originalname,
+            status: existingLookup.status || "ACTIVE",
+            institutionName,
+            issuerAddress: existingLookup.issuer
+          };
+
+          return res.status(200).json({
+            success: true,
+            message: `This exact document is already registered on the blockchain under Credential ID ${existingLookup.credentialId}.`,
+            data: existingLocal,
+            alreadyRegistered: true
+          });
+        }
+      } catch (checkErr) {
+        console.warn("Pre-issuance hash check warning:", checkErr.message);
+      }
+
+      // Generate unique credential ID
       const year = graduationYear || new Date().getFullYear();
       const cleanReg = registerNumber.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
       let credentialId = req.body.customCredentialId || req.body.credentialId;
 
-      // If no ID provided or if requested ID already exists, auto-append unique random suffix
       if (!credentialId || db.findCredentialById(credentialId)) {
-        const randSuffix = Math.floor(1000 + Math.random() * 9000);
+        let randSuffix = Math.floor(1000 + Math.random() * 9000);
         credentialId = `CRED-${year}-${cleanReg}-${randSuffix}`;
-        // Ensure strictly unique
         while (db.findCredentialById(credentialId)) {
-          credentialId = `CRED-${year}-${cleanReg}-${Math.floor(1000 + Math.random() * 9000)}`;
+          randSuffix = Math.floor(1000 + Math.random() * 9000);
+          credentialId = `CRED-${year}-${cleanReg}-${randSuffix}`;
         }
       }
 
-      console.log(`[Issue] Initiating blockchain transaction for ${credentialId} (Hash: ${documentSha256})`);
+      console.log(`[Issue] Submitting transaction for ${credentialId} (Hash: ${documentSha256})`);
 
       // Anchor credential hash to smart contract on blockchain
       let txResult;
@@ -142,31 +172,15 @@ class CredentialController {
           `offchain://records/${credentialId}`
         );
       } catch (bcErr) {
-        // If hash was already registered on-chain from a previous demo run, produce a unique salt hash so presentation issuance ALWAYS succeeds
-        if (bcErr.message && bcErr.message.includes("Document hash already registered")) {
-          console.warn("[Issue] Hash collision detected on-chain, re-hashing with issuance salt...");
-          const saltedBuf = Buffer.concat([fileBuffer, Buffer.from(`\n% Issuance Salt: ${credentialId} - ${Date.now()}`)]);
-          documentSha256 = hashService.calculateSha256(saltedBuf);
-          documentBytes32 = hashService.toBytes32(documentSha256);
-
-          txResult = await blockchainService.issueCredentialOnChain(
-            credentialId,
-            documentSha256,
-            credentialType,
-            recipientWallet,
-            `offchain://records/${credentialId}`
-          );
-        } else {
-          console.error("Blockchain issuance error:", bcErr);
-          return res.status(500).json({
-            success: false,
-            error: "Blockchain transaction failed: " + (bcErr.reason || bcErr.message),
-            details: bcErr.message
-          });
-        }
+        console.error("Blockchain issuance error:", bcErr);
+        return res.status(500).json({
+          success: false,
+          error: "Blockchain transaction failed: " + (bcErr.reason || bcErr.message),
+          details: bcErr.message
+        });
       }
 
-      // Store off-chain student metadata in database
+      // Store off-chain metadata in database
       const credentialRecord = {
         credentialId,
         studentName,
@@ -211,7 +225,7 @@ class CredentialController {
   }
 
   /**
-   * Verify an academic credential
+   * Verify an academic credential (Supports ANY uploaded custom PDF or Demo PDF)
    * POST /api/credentials/verify
    */
   async verifyCredential(req, res) {
@@ -222,12 +236,13 @@ class CredentialController {
 
       const uploadedFile = req.file || (req.files && req.files.length > 0 ? req.files[0] : null);
 
-      // 1. Handle Demo Mode Quick Selection (Original vs Tampered)
+      // 1. Handle Demo Mode Quick Selection
       if (demoModeType) {
-        const demoFilename =
-          demoModeType === "tampered"
-            ? "Keshav_Demo_Transcript_Tampered.pdf"
-            : "Keshav_Demo_Transcript.pdf";
+        const demoFilename = demoModeType.endsWith(".pdf")
+          ? demoModeType
+          : demoModeType === "tampered"
+          ? "Keshav_Demo_Transcript_Tampered.pdf"
+          : "Keshav_Demo_Transcript.pdf";
 
         const demoFilePath = path.join(DEMO_ASSETS_DIR, demoFilename);
         if (fs.existsSync(demoFilePath)) {
@@ -241,7 +256,7 @@ class CredentialController {
         }
       }
 
-      // 2. Handle Uploaded File
+      // 2. Handle Uploaded Custom User PDF File
       if (uploadedFile) {
         const fileBuffer = fs.readFileSync(uploadedFile.path);
         uploadedHash = hashService.calculateSha256(fileBuffer);
@@ -278,13 +293,14 @@ class CredentialController {
         }
       }
 
+      // If document was uploaded with no ID and hash is not found on chain
       if (!targetId) {
         return res.json({
           success: true,
           verdict: "NOT_FOUND",
           status: "NOT_FOUND",
           message:
-            "Document fingerprint not found in the blockchain registry. This document has not been issued or registered.",
+            "Document fingerprint not found in the blockchain registry. This document has not been registered by an authorized institution yet.",
           details: {
             uploadedDocumentHash: uploadedHash,
             fileDetails,

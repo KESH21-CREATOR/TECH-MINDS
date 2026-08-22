@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { X, Copy, Check, ExternalLink, QrCode, Smartphone, Laptop } from "lucide-react";
+import { X, Copy, Check, ExternalLink, QrCode, Smartphone, Laptop, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Credential } from "../types";
 
@@ -13,13 +13,16 @@ interface QRCodeModalProps {
 export const QRCodeModal: React.FC<QRCodeModalProps> = ({ credential, isOpen, onClose }) => {
   const [copied, setCopied] = useState(false);
   const [useNetworkIp, setUseNetworkIp] = useState(false);
+  const [customIp, setCustomIp] = useState("172.16.40.104");
 
   if (!isOpen || !credential) return null;
 
   const origin = window.location.origin;
-  // Use current host or local network IP for mobile scanning
-  const networkOrigin = origin.includes("localhost") || origin.includes("127.0.0.1")
-    ? origin.replace(/localhost|127\.0\.0\.1/, "192.168.31.140")
+  const isLocalhost = origin.includes("localhost") || origin.includes("127.0.0.1");
+
+  // Dynamic network origin
+  const networkOrigin = isLocalhost
+    ? `http://${customIp}:5173`
     : origin;
 
   const activeOrigin = useNetworkIp ? networkOrigin : origin;
@@ -33,7 +36,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ credential, isOpen, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl">
+      <div className="relative w-full max-w-md p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl space-y-4">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -43,7 +46,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ credential, isOpen, on
         </button>
 
         {/* Title */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3">
           <div className="p-2.5 bg-brand-500/10 border border-brand-500/20 text-brand-400 rounded-xl">
             <QrCode className="w-6 h-6" />
           </div>
@@ -53,8 +56,8 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ credential, isOpen, on
           </div>
         </div>
 
-        {/* Device Switcher for Mobile Phone Camera vs Desktop */}
-        <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-950 border border-slate-800 rounded-xl mb-3 text-xs">
+        {/* Device Switcher */}
+        <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs">
           <button
             type="button"
             onClick={() => setUseNetworkIp(false)}
@@ -82,6 +85,28 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ credential, isOpen, on
           </button>
         </div>
 
+        {/* Mobile Wi-Fi IP configuration if needed */}
+        {useNetworkIp && isLocalhost && (
+          <div className="p-2.5 bg-brand-950/40 border border-brand-900/40 rounded-xl text-[11px] space-y-1.5">
+            <div className="text-brand-300 font-semibold flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5" />
+              <span>Computer Wi-Fi IP Address:</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={customIp}
+                onChange={(e) => setCustomIp(e.target.value)}
+                placeholder="e.g. 172.16.40.104"
+                className="w-full px-2.5 py-1 bg-slate-900 border border-slate-800 rounded text-slate-200 font-mono text-xs focus:outline-none focus:border-brand-500"
+              />
+            </div>
+            <p className="text-[10px] text-slate-400">
+              Ensure your phone and laptop are connected to the same Wi-Fi network.
+            </p>
+          </div>
+        )}
+
         {/* QR Code Container */}
         <div className="flex flex-col items-center justify-center p-5 bg-white rounded-xl shadow-inner my-2">
           <QRCodeSVG
@@ -90,13 +115,13 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ credential, isOpen, on
             level="H"
             includeMargin={true}
           />
-          <span className="mt-1.5 text-[11px] font-bold text-slate-800 font-sans tracking-wide text-center">
-            {useNetworkIp ? "SCAN WITH PHONE CAMERA (SAME WI-FI)" : "SCAN TO VERIFY LIVE ON-CHAIN"}
+          <span className="mt-1.5 text-[10px] font-bold text-slate-800 font-sans tracking-wide text-center">
+            {useNetworkIp ? `SCAN WITH PHONE CAMERA (WI-FI: ${customIp})` : "SCAN OR CLICK 'TEST VERIFIER' BELOW"}
           </span>
         </div>
 
         {/* Summary Info */}
-        <div className="space-y-1 p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-xs mt-3">
+        <div className="space-y-1 p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-xs">
           <div className="flex justify-between">
             <span className="text-slate-400">Student:</span>
             <span className="font-semibold text-slate-200">{credential.studentName}</span>
@@ -120,7 +145,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({ credential, isOpen, on
         </div>
 
         {/* URL Input & Actions */}
-        <div className="mt-3 space-y-2">
+        <div className="space-y-2">
           <div className="flex items-center gap-2 p-2 bg-slate-950 border border-slate-800 rounded-lg">
             <input
               type="text"

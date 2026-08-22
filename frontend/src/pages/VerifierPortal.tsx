@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import {
   ShieldCheck,
   FileCheck,
@@ -17,7 +17,10 @@ import {
   ExternalLink,
   Download,
   Bot,
-  FileText
+  FileText,
+  Camera,
+  PlusCircle,
+  HelpCircle
 } from "lucide-react";
 import { api } from "../services/api";
 import { VerificationResponse, AIDocumentAnalysis, AIVerdictExplanation, DemoCredentialItem } from "../types";
@@ -25,6 +28,7 @@ import { HashBadge } from "../components/HashBadge";
 import { AIAnalysisCard } from "../components/AIAnalysisCard";
 import { AIExplanationModal } from "../components/AIExplanationModal";
 import { DemoSelectorModal } from "../components/DemoSelectorModal";
+import { QRCameraScanner } from "../components/QRCameraScanner";
 
 export const VerifierPortal: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -47,8 +51,9 @@ export const VerifierPortal: React.FC = () => {
   const [showExplanationModal, setShowExplanationModal] = useState(false);
   const [explaining, setExplaining] = useState(false);
 
-  // Demo selector modal
+  // Modal states
   const [showDemoSelector, setShowDemoSelector] = useState(false);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
 
   // When file is picked, calculate SHA-256 on client for instant feedback
   const handleFileChange = async (selectedFile: File | null) => {
@@ -149,7 +154,6 @@ export const VerifierPortal: React.FC = () => {
     setAiAnalysis(null);
     setAiExplanation(null);
 
-    // Auto verify
     setLoading(true);
     try {
       const res = await api.verifyDemoAsset(item.filename, credentialId || undefined);
@@ -191,6 +195,20 @@ export const VerifierPortal: React.FC = () => {
     } finally {
       setAiAnalyzing(false);
     }
+  };
+
+  // Handle QR Scan
+  const handleQRScanResult = (scannedId: string) => {
+    setCredentialId(scannedId);
+    setSelectedDemoName(null);
+    api
+      .verifyCredentialById(scannedId)
+      .then((res) => {
+        setResult(res);
+      })
+      .catch((err) => {
+        setErrorMsg("Failed to verify scanned credential: " + err.message);
+      });
   };
 
   return (
@@ -292,15 +310,25 @@ export const VerifierPortal: React.FC = () => {
       {/* Verification Input Form */}
       <form onSubmit={handleVerify} className="glass-card p-6 rounded-2xl border border-slate-800 space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-          {/* Credential ID input */}
+          {/* Credential ID input with Camera QR Scanner Button */}
           <div className="md:col-span-6 space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-300">
-              Credential ID (Optional if PDF provided)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-300">
+                Credential ID
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowCameraScanner(true)}
+                className="text-[11px] text-brand-400 hover:text-brand-300 flex items-center gap-1 font-semibold"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Scan QR with Camera / Image</span>
+              </button>
+            </div>
             <div className="relative">
               <input
                 type="text"
-                placeholder="e.g. CRED-2026-VIT2026DEMO-5294"
+                placeholder="e.g. CRED-2026-NIT2026CS101-6207"
                 value={credentialId}
                 onChange={(e) => setCredentialId(e.target.value)}
                 className="w-full pl-3 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-brand-500"
@@ -311,7 +339,7 @@ export const VerifierPortal: React.FC = () => {
           {/* PDF Document Upload */}
           <div className="md:col-span-6 space-y-1.5">
             <label className="block text-xs font-semibold text-slate-300">
-              Upload Academic PDF to Verify
+              Upload ANY Academic PDF to Verify
             </label>
             <div className="relative">
               <input
@@ -594,12 +622,61 @@ export const VerifierPortal: React.FC = () => {
             </div>
           )}
 
+          {/* VERDICT BANNER: ⚪ NOT_FOUND (With instant 1-click issue helper) */}
+          {result.verdict === "NOT_FOUND" && (
+            <div className="glass-card p-6 sm:p-8 rounded-3xl border border-slate-700 bg-slate-900/90 shadow-2xl space-y-5">
+              <div className="flex items-start gap-4">
+                <div className="p-3.5 bg-slate-800 text-slate-400 rounded-2xl shrink-0">
+                  <HelpCircle className="w-8 h-8" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-slate-800 text-slate-300 uppercase tracking-wide">
+                    ⚪ DOCUMENT NOT FOUND ON BLOCKCHAIN
+                  </div>
+                  <h2 className="text-xl font-bold text-white mt-1">
+                    Document Fingerprint Not Registered Yet
+                  </h2>
+                  <p className="text-xs text-slate-300 leading-relaxed mt-1">
+                    This document's cryptographic hash does not exist in the blockchain registry. If this is a new document, you can issue and anchor it in under 30 seconds!
+                  </p>
+                </div>
+              </div>
+
+              {/* 1-Click Guide to Issue custom PDF */}
+              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3 text-xs">
+                <div className="text-slate-300 font-bold">Want to test verifying your own custom PDF?</div>
+                <ol className="list-decimal list-inside space-y-1.5 text-slate-400 text-[11px]">
+                  <li>Go to the <strong className="text-brand-300">Institution Portal</strong>.</li>
+                  <li>Upload your custom PDF and fill in student details.</li>
+                  <li>Click <strong className="text-brand-300">"Issue Credential & Register on Blockchain"</strong> to anchor its SHA-256 on Ethereum.</li>
+                  <li>Come back here and upload the same PDF — it will instantly show 🟢 <strong>VERIFIED AUTHENTIC</strong>!</li>
+                </ol>
+                <div className="pt-2">
+                  <Link
+                    to="/institution/issue"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold transition shadow"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Go to Institution Issue Portal →</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* AI DOCUMENT ANALYSIS CARD (Embedded if generated) */}
           {aiAnalysis && (
             <AIAnalysisCard analysis={aiAnalysis} onClose={() => setAiAnalysis(null)} />
           )}
         </div>
       )}
+
+      {/* Live QR Camera Scanner Modal */}
+      <QRCameraScanner
+        isOpen={showCameraScanner}
+        onClose={() => setShowCameraScanner(false)}
+        onScanSuccess={handleQRScanResult}
+      />
 
       {/* AI Explanation Modal */}
       <AIExplanationModal
