@@ -101,3 +101,55 @@ export interface DemoPrefillData {
   recipientWallet: string;
   notes: string;
 }
+
+export interface DemoCredentialItem {
+  id: string;
+  filename: string;
+  originalFilename?: string;
+  studentName: string;
+  registerNumber: string;
+  institution: string;
+  programme: string;
+  credentialType: string;
+  cgpa: string;
+  originalCgpa?: string;
+  sha256: string;
+  academicYear: string;
+  issueDate: string;
+  isTampered: boolean;
+  description: string;
+}
+
+export interface AIChatMessage {
+  id: string;
+  sender: "user" | "ai";
+  text: string;
+  timestamp: string;
+  isContextAware?: boolean;
+  topic?: string;
+}
+
+export interface AIDocumentAnalysis {
+  success: boolean;
+  analysisTimestamp: string;
+  documentType: string;
+  detectedInstitution: string;
+  detectedStudent: string;
+  detectedRegisterNumber: string;
+  detectedProgramme: string;
+  detectedCgpa: string;
+  academicYear: string;
+  issueDate: string;
+  documentConsistency: string;
+  isConsistent: boolean;
+  potentialIssues: string[];
+  confidence: string;
+  disclaimer: string;
+}
+
+export interface AIVerdictExplanation {
+  verdict: string;
+  title: string;
+  explanation: string;
+  recommendation: string;
+}

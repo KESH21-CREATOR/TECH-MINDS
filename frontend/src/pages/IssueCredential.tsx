@@ -14,12 +14,14 @@ import {
   Copy,
   Check,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  FileText
 } from "lucide-react";
 import { api } from "../services/api";
-import { Credential } from "../types";
+import { Credential, DemoCredentialItem } from "../types";
 import { HashBadge } from "../components/HashBadge";
 import { QRCodeSVG } from "qrcode.react";
+import { DemoSelectorModal } from "../components/DemoSelectorModal";
 
 export const IssueCredential: React.FC = () => {
   const navigate = useNavigate();
@@ -46,6 +48,9 @@ export const IssueCredential: React.FC = () => {
   const [issuedCredential, setIssuedCredential] = useState<Credential | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Demo selector modal
+  const [showDemoSelector, setShowDemoSelector] = useState(false);
 
   // Compute SHA-256 in browser on file selection
   const handleFileChange = async (selectedFile: File | null) => {
@@ -76,7 +81,41 @@ export const IssueCredential: React.FC = () => {
     }
   };
 
-  // Prefill Demo Data (Keshav Demo) - Generates a fresh unique demo record each time
+  // Select profile from Demo Catalog
+  const handleSelectDemoProfile = async (item: DemoCredentialItem) => {
+    setErrorMessage(null);
+    const randSuffix = Math.floor(1000 + Math.random() * 9000);
+    const newCredId = `CRED-2026-${item.registerNumber.replace(/[^a-zA-Z0-9]/g, "")}-${randSuffix}`;
+
+    setStudentName(item.studentName);
+    setRegisterNumber(item.registerNumber);
+    setProgramme(item.programme);
+    setCgpa(item.cgpa);
+    setGraduationYear("2026");
+    setCredentialType(item.credentialType);
+    setRecipientWallet("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+    setCustomCredentialId(newCredId);
+    setNotes(`Official ${item.credentialType.toLowerCase()} issued for ${item.studentName}.`);
+
+    try {
+      const res = await fetch(`/demo-assets/${item.filename}`);
+      if (res.ok) {
+        const arrayBuf = await res.arrayBuffer();
+        const trailer = new TextEncoder().encode(`\n% Demo Ref: ${newCredId} - ${Date.now()}\n`);
+        const combined = new Uint8Array(arrayBuf.byteLength + trailer.byteLength);
+        combined.set(new Uint8Array(arrayBuf), 0);
+        combined.set(trailer, arrayBuf.byteLength);
+
+        const demoBlob = new Blob([combined], { type: "application/pdf" });
+        const demoFile = new File([demoBlob], item.filename, { type: "application/pdf" });
+        await handleFileChange(demoFile);
+      }
+    } catch (e) {
+      console.warn("Could not load demo PDF:", e);
+    }
+  };
+
+  // Prefill Demo Data (Keshav Demo)
   const handlePrefillDemo = async () => {
     setErrorMessage(null);
     const randSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -92,12 +131,10 @@ export const IssueCredential: React.FC = () => {
     setCustomCredentialId(newCredId);
     setNotes(`Official transcript issued for demo session #${randSuffix}.`);
 
-    // Fetch authentic demo PDF and append unique metadata timestamp so each demo issuance produces a fresh, unique on-chain hash
     try {
       const res = await fetch("/demo-assets/Keshav_Demo_Transcript.pdf");
       if (res.ok) {
         const arrayBuf = await res.arrayBuffer();
-        // Append a unique invisible comment trailer to produce a fresh unique cryptographic SHA-256
         const trailer = new TextEncoder().encode(`\n% Demo Issuance Ref: ${newCredId} - ${Date.now()}\n`);
         const combined = new Uint8Array(arrayBuf.byteLength + trailer.byteLength);
         combined.set(new Uint8Array(arrayBuf), 0);
@@ -181,16 +218,27 @@ export const IssueCredential: React.FC = () => {
           </p>
         </div>
 
-        {/* Demo Mode Button */}
+        {/* Demo Mode Actions */}
         {!issuedCredential && (
-          <button
-            type="button"
-            onClick={handlePrefillDemo}
-            className="px-3.5 py-2 bg-gradient-to-r from-brand-600/30 to-indigo-600/30 hover:from-brand-600/50 hover:to-indigo-600/50 border border-brand-500/40 text-brand-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-sm"
-          >
-            <Sparkles className="w-4 h-4 text-brand-400" />
-            <span>Prefill Keshav's Demo Data</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowDemoSelector(true)}
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"
+            >
+              <FileText className="w-4 h-4 text-brand-400" />
+              <span>Browse 10 Demo Profiles</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePrefillDemo}
+              className="px-3.5 py-2 bg-gradient-to-r from-brand-600/30 to-indigo-600/30 hover:from-brand-600/50 hover:to-indigo-600/50 border border-brand-500/40 text-brand-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-sm"
+            >
+              <Sparkles className="w-4 h-4 text-brand-400" />
+              <span>Prefill Keshav Demo</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -468,7 +516,7 @@ export const IssueCredential: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Credential ID (Auto-Generated or Custom)</label>
+                <label className="block text-slate-300 font-medium mb-1">Credential ID (Auto-Generated on Issue)</label>
                 <input
                   type="text"
                   placeholder="Auto-generated unique ID"
@@ -527,6 +575,14 @@ export const IssueCredential: React.FC = () => {
           </div>
         </form>
       )}
+
+      {/* Demo Selector Modal */}
+      <DemoSelectorModal
+        isOpen={showDemoSelector}
+        onClose={() => setShowDemoSelector(false)}
+        onSelect={handleSelectDemoProfile}
+        mode="issue"
+      />
     </div>
   );
 };

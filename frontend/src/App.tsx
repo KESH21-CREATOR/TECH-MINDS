@@ -9,6 +9,7 @@ import { StudentWallet } from "./pages/StudentWallet";
 import { VerifierPortal } from "./pages/VerifierPortal";
 import { CredentialExplorer } from "./pages/CredentialExplorer";
 import { AboutPage } from "./pages/AboutPage";
+import { AIChatbot } from "./components/AIChatbot";
 
 export const App: React.FC = () => {
   return (
@@ -28,6 +29,8 @@ export const App: React.FC = () => {
           </Routes>
         </main>
         <Footer />
+        {/* Global Floating AI Assistant */}
+        <AIChatbot />
       </div>
     </Router>
   );

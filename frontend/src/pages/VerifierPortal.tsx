@@ -15,29 +15,47 @@ import {
   Building2,
   ArrowRight,
   ExternalLink,
-  Download
+  Download,
+  Bot,
+  FileText
 } from "lucide-react";
 import { api } from "../services/api";
-import { VerificationResponse } from "../types";
+import { VerificationResponse, AIDocumentAnalysis, AIVerdictExplanation, DemoCredentialItem } from "../types";
 import { HashBadge } from "../components/HashBadge";
+import { AIAnalysisCard } from "../components/AIAnalysisCard";
+import { AIExplanationModal } from "../components/AIExplanationModal";
+import { DemoSelectorModal } from "../components/DemoSelectorModal";
 
 export const VerifierPortal: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlCredId = searchParams.get("id") || "";
-  const demoTypeParam = searchParams.get("demo") as "original" | "tampered" | null;
+  const demoTypeParam = searchParams.get("demo");
 
   const [credentialId, setCredentialId] = useState(urlCredId);
   const [file, setFile] = useState<File | null>(null);
   const [clientFileHash, setClientFileHash] = useState<string | null>(null);
-  const [selectedDemoType, setSelectedDemoType] = useState<"original" | "tampered" | null>(demoTypeParam);
+  const [selectedDemoName, setSelectedDemoName] = useState<string | null>(demoTypeParam);
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VerificationResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // AI states
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<AIDocumentAnalysis | null>(null);
+  const [aiExplanation, setAiExplanation] = useState<AIVerdictExplanation | null>(null);
+  const [showExplanationModal, setShowExplanationModal] = useState(false);
+  const [explaining, setExplaining] = useState(false);
+
+  // Demo selector modal
+  const [showDemoSelector, setShowDemoSelector] = useState(false);
+
   // When file is picked, calculate SHA-256 on client for instant feedback
   const handleFileChange = async (selectedFile: File | null) => {
-    setSelectedDemoType(null);
+    setSelectedDemoName(null);
+    setAiAnalysis(null);
+    setAiExplanation(null);
+
     if (!selectedFile) {
       setFile(null);
       setClientFileHash(null);
@@ -67,11 +85,13 @@ export const VerifierPortal: React.FC = () => {
     setLoading(true);
     setErrorMsg(null);
     setResult(null);
+    setAiAnalysis(null);
+    setAiExplanation(null);
 
     try {
-      if (selectedDemoType) {
+      if (selectedDemoName) {
         // Quick Demo Asset Verification
-        const response = await api.verifyDemoAsset(selectedDemoType, credentialId || undefined);
+        const response = await api.verifyDemoAsset(selectedDemoName, credentialId || undefined);
         setResult(response);
       } else if (file) {
         // File Upload Verification
@@ -102,97 +122,169 @@ export const VerifierPortal: React.FC = () => {
     if (urlCredId) {
       setCredentialId(urlCredId);
     }
-    if (demoTypeParam === "original" || demoTypeParam === "tampered") {
-      setSelectedDemoType(demoTypeParam);
-      // Auto-run demo verification
-      api.verifyDemoAsset(demoTypeParam, urlCredId || undefined).then((res) => {
-        setResult(res);
-      }).catch(console.error);
+    if (demoTypeParam) {
+      setSelectedDemoName(demoTypeParam);
+      api
+        .verifyDemoAsset(demoTypeParam, urlCredId || undefined)
+        .then((res) => {
+          setResult(res);
+        })
+        .catch(console.error);
     } else if (urlCredId) {
-      // Auto-run ID lookup
-      api.verifyCredentialById(urlCredId).then((res) => {
-        setResult(res);
-      }).catch(console.error);
+      api
+        .verifyCredentialById(urlCredId)
+        .then((res) => {
+          setResult(res);
+        })
+        .catch(console.error);
     }
   }, [urlCredId, demoTypeParam]);
 
-  const handleSelectDemoAsset = (type: "original" | "tampered") => {
-    setSelectedDemoType(type);
+  // Handle Demo Selection from Modal
+  const handleSelectDemoItem = async (item: DemoCredentialItem) => {
+    setSelectedDemoName(item.filename);
     setFile(null);
-    setClientFileHash(null);
-    setSearchParams(credentialId ? { id: credentialId, demo: type } : { demo: type });
-    api.verifyDemoAsset(type, credentialId || undefined).then((res) => {
+    setClientFileHash(item.sha256);
+    setResult(null);
+    setAiAnalysis(null);
+    setAiExplanation(null);
+
+    // Auto verify
+    setLoading(true);
+    try {
+      const res = await api.verifyDemoAsset(item.filename, credentialId || undefined);
       setResult(res);
-    }).catch((err) => setErrorMsg(err.message));
+    } catch (err: any) {
+      setErrorMsg(err.message || "Verification check failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Trigger AI Verdict Explanation
+  const handleExplainWithAI = async () => {
+    if (!result) return;
+    setExplaining(true);
+    try {
+      const response = await api.explainVerdict(result.verdict, result.details);
+      setAiExplanation(response.data);
+      setShowExplanationModal(true);
+    } catch (err: any) {
+      alert("AI explanation could not be generated: " + err.message);
+    } finally {
+      setExplaining(false);
+    }
+  };
+
+  // Trigger AI Document Analysis
+  const handleAnalyzeDocumentWithAI = async () => {
+    setAiAnalyzing(true);
+    try {
+      const response = await api.analyzeDocument({
+        file: file || undefined,
+        credentialId: credentialId || result?.details?.credentialId || undefined,
+        demoModeType: selectedDemoName || undefined
+      });
+      setAiAnalysis(response.data);
+    } catch (err: any) {
+      alert("AI document analysis failed: " + err.message);
+    } finally {
+      setAiAnalyzing(false);
+    }
   };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="text-center max-w-2xl mx-auto space-y-2">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-xs font-semibold">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Public Trustless Verification Portal</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20">
+          <ShieldCheck className="w-4 h-4" />
+          <span>Independent Cryptographic Trust Layer</span>
         </div>
-        <h1 className="text-3xl font-extrabold text-white">
-          Verify Academic Credentials
+        <h1 className="text-3xl font-extrabold text-white tracking-tight sm:text-4xl">
+          Academic Credential Verifier
         </h1>
         <p className="text-slate-400 text-xs sm:text-sm">
-          Cryptographically compare document fingerprints against immutable Ethereum smart contract records.
+          Verify academic transcripts & degrees instantly against the immutable Ethereum blockchain.
         </p>
       </div>
 
-      {/* 1-Click Hackathon Demo Quick Selectors */}
-      <div className="glass-card p-4 rounded-2xl border border-brand-500/20 bg-slate-900/60 space-y-3">
-        <div className="flex items-center justify-between text-xs font-semibold">
-          <span className="text-white flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-            1-Click Hackathon Demo Verifier
-          </span>
-          <span className="text-slate-400 text-[11px]">Instant live check with sample documents</span>
-        </div>
+      {/* Demo Test Bar with 10 Authentic + 3 Tampered Documents */}
+      <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-3 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Interactive Demo Testing Center</span>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => handleSelectDemoAsset("original")}
-            className={`p-3 rounded-xl border text-left transition flex items-center justify-between ${
-              selectedDemoType === "original"
-                ? "bg-emerald-950/60 border-emerald-500/60 ring-1 ring-emerald-500/30"
-                : "bg-slate-950/60 border-slate-800 hover:border-emerald-700/60"
-            }`}
+            onClick={() => setShowDemoSelector(true)}
+            className="px-3 py-1.5 bg-gradient-to-r from-brand-600/30 to-indigo-600/30 hover:from-brand-600/50 hover:to-indigo-600/50 border border-brand-500/40 text-brand-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition self-start sm:self-auto"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Browse 10 Demo PDFs + 3 Tampered Files</span>
+          </button>
+        </div>
+
+        {/* Quick Demo Action Buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={() => handleSelectDemoItem({
+              id: "DEMO-01",
+              filename: "Demo_Transcript_Aarav_Sharma.pdf",
+              studentName: "Aarav Sharma",
+              registerNumber: "NIT2026CS101",
+              institution: "Northstar Institute of Technology",
+              programme: "B.Tech Computer Science and Engineering",
+              credentialType: "Academic Transcript",
+              cgpa: "8.72",
+              sha256: "63ecb7c5660c469c",
+              academicYear: "2022 - 2026",
+              issueDate: "June 15, 2026",
+              isTampered: false,
+              description: "Authentic Demo Transcript"
+            })}
+            className="p-3 bg-slate-950/70 hover:bg-emerald-950/30 border border-slate-800 hover:border-emerald-500/50 rounded-xl text-left transition group flex items-center justify-between"
           >
             <div>
-              <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Original Demo Transcript</span>
+              <div className="text-xs font-bold text-slate-200 group-hover:text-emerald-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Authentic Transcript (Aarav Sharma)</span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">Authentic record • 8.90 CGPA</p>
+              <div className="text-[10px] text-slate-400">CGPA: 8.72 • Expects: 🟢 VALID</div>
             </div>
-            <span className="px-2 py-1 bg-emerald-500/10 text-emerald-300 rounded text-[10px] font-bold">
-              Test VALID
-            </span>
+            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition" />
           </button>
 
           <button
             type="button"
-            onClick={() => handleSelectDemoAsset("tampered")}
-            className={`p-3 rounded-xl border text-left transition flex items-center justify-between ${
-              selectedDemoType === "tampered"
-                ? "bg-rose-950/60 border-rose-500/60 ring-1 ring-rose-500/30"
-                : "bg-slate-950/60 border-slate-800 hover:border-rose-700/60"
-            }`}
+            onClick={() => handleSelectDemoItem({
+              id: "DEMO-01-TAMPERED",
+              filename: "Demo_Transcript_Aarav_Sharma_Tampered.pdf",
+              studentName: "Aarav Sharma",
+              registerNumber: "NIT2026CS101",
+              institution: "Northstar Institute of Technology",
+              programme: "B.Tech Computer Science and Engineering",
+              credentialType: "Academic Transcript",
+              cgpa: "9.72",
+              sha256: "027701290c726722",
+              academicYear: "2022 - 2026",
+              issueDate: "June 15, 2026",
+              isTampered: true,
+              description: "Tampered Demo Transcript"
+            })}
+            className="p-3 bg-slate-950/70 hover:bg-rose-950/30 border border-slate-800 hover:border-rose-500/50 rounded-xl text-left transition group flex items-center justify-between"
           >
             <div>
-              <div className="text-xs font-bold text-rose-400 flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>Tampered Demo Transcript</span>
+              <div className="text-xs font-bold text-slate-200 group-hover:text-rose-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                <span>Tampered Transcript (Altered to 9.72)</span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">Altered grades • 9.90 CGPA</p>
+              <div className="text-[10px] text-slate-400">CGPA altered • Expects: 🔴 TAMPER DETECTED</div>
             </div>
-            <span className="px-2 py-1 bg-rose-500/10 text-rose-300 rounded text-[10px] font-bold">
-              Test TAMPER
-            </span>
+            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-rose-400 group-hover:translate-x-0.5 transition" />
           </button>
         </div>
       </div>
@@ -208,7 +300,7 @@ export const VerifierPortal: React.FC = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="e.g. CRED-2026-VITDEMO-001"
+                placeholder="e.g. CRED-2026-VIT2026DEMO-5294"
                 value={credentialId}
                 onChange={(e) => setCredentialId(e.target.value)}
                 className="w-full pl-3 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-600 font-mono focus:outline-none focus:border-brand-500"
@@ -232,6 +324,23 @@ export const VerifierPortal: React.FC = () => {
           </div>
         </div>
 
+        {/* Selected demo asset pill */}
+        {selectedDemoName && (
+          <div className="p-2.5 bg-slate-950 border border-brand-900/50 rounded-xl text-xs flex items-center justify-between">
+            <span className="text-slate-300 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-brand-400" />
+              <span>Selected Demo Document: <strong className="text-white">{selectedDemoName}</strong></span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedDemoName(null)}
+              className="text-slate-500 hover:text-slate-300 text-xs"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
         {/* Client hash preview if file selected */}
         {clientFileHash && (
           <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono space-y-1">
@@ -254,7 +363,7 @@ export const VerifierPortal: React.FC = () => {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || (!credentialId && !file && !selectedDemoType)}
+          disabled={loading || (!credentialId && !file && !selectedDemoName)}
           className="w-full py-3.5 bg-brand-600 hover:bg-brand-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-brand-600/20 text-xs sm:text-sm"
         >
           {loading ? (
@@ -348,75 +457,114 @@ export const VerifierPortal: React.FC = () => {
                     <span className="text-slate-400">Issuer Address:</span>
                     <HashBadge hash={result.details.issuerAddress || ""} truncateLength={4} color="slate" />
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Status:</span>
-                    <span className="font-bold text-emerald-400">ACTIVE</span>
-                  </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Tx Hash:</span>
+                    <span className="text-slate-400">Transaction Hash:</span>
                     <HashBadge hash={result.details.transactionHash || ""} truncateLength={4} color="slate" />
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Block Number:</span>
+                    <span className="font-mono text-slate-200">#{result.details.blockNumber || 1}</span>
+                  </div>
                 </div>
+              </div>
+
+              {/* AI Action CTAs */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-emerald-900/40">
+                <button
+                  type="button"
+                  onClick={handleExplainWithAI}
+                  disabled={explaining}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition"
+                >
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  <span>{explaining ? "Generating Explanation..." : "Explain this result with AI"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAnalyzeDocumentWithAI}
+                  disabled={aiAnalyzing}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 hover:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition"
+                >
+                  <Bot className="w-4 h-4 text-indigo-400" />
+                  <span>{aiAnalyzing ? "Analyzing Structure..." : "Analyze Document with AI"}</span>
+                </button>
               </div>
             </div>
           )}
 
-          {/* VERDICT BANNER: 🔴 TAMPER DETECTED */}
+          {/* VERDICT BANNER: 🔴 TAMPERED */}
           {result.verdict === "TAMPERED" && (
-            <div className="glass-card p-6 sm:p-8 rounded-3xl border border-rose-500/50 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-rose-950/30 shadow-2xl glow-danger space-y-6">
+            <div className="glass-card p-6 sm:p-8 rounded-3xl border border-rose-500/50 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-rose-950/40 shadow-2xl glow-danger space-y-6">
               <div className="flex items-start gap-4">
                 <div className="p-3.5 bg-rose-500/20 text-rose-400 border border-rose-500/40 rounded-2xl glow-danger shrink-0">
-                  <AlertTriangle className="w-8 h-8" />
+                  <XCircle className="w-8 h-8" />
                 </div>
                 <div>
                   <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/40 uppercase tracking-wide">
                     🔴 TAMPER DETECTED
                   </div>
                   <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
-                    Document Fingerprint Mismatch!
+                    Document Cryptographic Fingerprint Mismatch
                   </h2>
-                  <p className="text-xs text-rose-200 leading-relaxed mt-1">
-                    The uploaded document bytes produce a SHA-256 hash that does NOT match the immutable hash registered on the blockchain. This document has been altered or forged.
+                  <p className="text-xs text-slate-300 leading-relaxed mt-1">
+                    The SHA-256 hash of the uploaded PDF does not match the immutable record registered on the blockchain. This document has been altered or forged.
                   </p>
                 </div>
               </div>
 
-              {/* Hash Mismatch Diff Box */}
+              {/* Hash Mismatch Comparison Box */}
               <div className="p-4 bg-slate-950/80 border border-rose-900/40 rounded-2xl space-y-3 font-mono text-xs">
-                <div className="text-rose-400 font-sans text-xs font-bold uppercase tracking-wider">
-                  Hash Mismatch Detected
+                <div className="text-slate-400 font-sans text-xs font-bold uppercase tracking-wider text-rose-400">
+                  Cryptographic Hash Comparison (SHA-256 Mismatch)
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
                     <div className="text-slate-400 font-sans text-[11px] mb-1">Blockchain Registered Hash:</div>
                     <HashBadge hash={result.details.registeredDocumentHash || ""} truncate={false} color="blue" />
                   </div>
-                  <div className="p-3 bg-rose-950/40 rounded-xl border border-rose-800/60">
-                    <div className="text-rose-300 font-sans text-[11px] mb-1">Uploaded Document Hash (Altered):</div>
+                  <div className="p-3 bg-slate-900/90 rounded-xl border border-rose-900/50">
+                    <div className="text-slate-400 font-sans text-[11px] mb-1">Uploaded Document Hash (Modified):</div>
                     <HashBadge hash={result.details.uploadedDocumentHash || ""} truncate={false} color="rose" />
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-rose-400 font-sans font-semibold text-xs pt-1">
-                  <XCircle className="w-4 h-4 shrink-0" />
-                  <span>Hashes Match: NO — Binary payload has been modified post-issuance</span>
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>Hashes Do Not Match: Avalanche effect triggered by modified bytes</span>
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl text-xs space-y-2">
-                <div className="text-slate-400 font-bold uppercase text-[11px]">Security Assessment</div>
-                <p className="text-slate-300 leading-relaxed">
-                  In this demonstration, the academic transcript's CGPA was modified from <strong>8.90</strong> to <strong>9.90</strong>. Because cryptographic hashing is avalanche-sensitive, altering even a single character completely changes the SHA-256 digest, making tampering immediately detectable.
-                </p>
+              {/* AI Action CTAs */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-rose-900/40">
+                <button
+                  type="button"
+                  onClick={handleExplainWithAI}
+                  disabled={explaining}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 hover:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition"
+                >
+                  <Sparkles className="w-4 h-4 text-rose-400" />
+                  <span>{explaining ? "Generating Explanation..." : "Explain why this is tampered with AI"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAnalyzeDocumentWithAI}
+                  disabled={aiAnalyzing}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 hover:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition"
+                >
+                  <Bot className="w-4 h-4 text-indigo-400" />
+                  <span>{aiAnalyzing ? "Analyzing Structure..." : "Analyze Document with AI"}</span>
+                </button>
               </div>
             </div>
           )}
 
-          {/* VERDICT BANNER: 🟠 CREDENTIAL REVOKED */}
+          {/* VERDICT BANNER: 🟠 REVOKED */}
           {result.verdict === "REVOKED" && (
-            <div className="glass-card p-6 sm:p-8 rounded-3xl border border-amber-500/50 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-amber-950/30 shadow-2xl glow-warning space-y-6">
+            <div className="glass-card p-6 sm:p-8 rounded-3xl border border-amber-500/50 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-amber-950/40 shadow-2xl space-y-6">
               <div className="flex items-start gap-4">
-                <div className="p-3.5 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-2xl glow-warning shrink-0">
-                  <XCircle className="w-8 h-8" />
+                <div className="p-3.5 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-2xl shrink-0">
+                  <AlertTriangle className="w-8 h-8" />
                 </div>
                 <div>
                   <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-wide">
@@ -425,51 +573,48 @@ export const VerifierPortal: React.FC = () => {
                   <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
                     Academic Credential Has Been Revoked
                   </h2>
-                  <p className="text-xs text-amber-200 leading-relaxed mt-1">
-                    The issuing institution has recorded a revocation on the smart contract. This credential is no longer active or legally valid.
+                  <p className="text-xs text-slate-300 leading-relaxed mt-1">
+                    The issuing institution has officially revoked this credential on the blockchain ledger. It is no longer valid.
                   </p>
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-950/80 border border-amber-900/40 rounded-2xl space-y-2 text-xs font-sans">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Credential ID:</span>
-                  <span className="font-mono font-bold text-white">{result.details.credentialId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Issuing Institution:</span>
-                  <span className="font-medium text-slate-200">{result.details.institutionName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">On-Chain Status:</span>
-                  <span className="font-bold text-rose-400">REVOKED</span>
-                </div>
-                {result.details.revokedAt && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Revocation Timestamp:</span>
-                    <span className="text-slate-300">{new Date(result.details.revokedAt).toLocaleString()}</span>
-                  </div>
-                )}
+              {/* AI Action CTA */}
+              <div className="flex items-center gap-3 pt-2 border-t border-amber-900/40">
+                <button
+                  type="button"
+                  onClick={handleExplainWithAI}
+                  disabled={explaining}
+                  className="px-4 py-2.5 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-amber-300 hover:text-white rounded-xl text-xs font-bold flex items-center gap-2 transition"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Explain revocation with AI</span>
+                </button>
               </div>
             </div>
           )}
 
-          {/* VERDICT BANNER: ⚪ NOT FOUND / RECORD FOUND WITHOUT FILE */}
-          {(result.verdict === "NOT_FOUND" || result.verdict === "RECORD_FOUND") && (
-            <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-slate-800 text-slate-300 rounded-xl">
-                  <Search className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-base">{result.message}</h3>
-                  <p className="text-xs text-slate-400">{result.details?.credentialId || "Unregistered fingerprint"}</p>
-                </div>
-              </div>
-            </div>
+          {/* AI DOCUMENT ANALYSIS CARD (Embedded if generated) */}
+          {aiAnalysis && (
+            <AIAnalysisCard analysis={aiAnalysis} onClose={() => setAiAnalysis(null)} />
           )}
         </div>
       )}
+
+      {/* AI Explanation Modal */}
+      <AIExplanationModal
+        explanation={aiExplanation}
+        isOpen={showExplanationModal}
+        onClose={() => setShowExplanationModal(false)}
+      />
+
+      {/* Demo Selector Modal */}
+      <DemoSelectorModal
+        isOpen={showDemoSelector}
+        onClose={() => setShowDemoSelector(false)}
+        onSelect={handleSelectDemoItem}
+        mode="verify"
+      />
     </div>
   );
 };

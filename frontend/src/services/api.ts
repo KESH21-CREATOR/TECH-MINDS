@@ -1,4 +1,12 @@
-import { Credential, VerificationResponse, HealthStatus, DemoPrefillData } from "../types";
+import {
+  Credential,
+  VerificationResponse,
+  HealthStatus,
+  DemoPrefillData,
+  DemoCredentialItem,
+  AIDocumentAnalysis,
+  AIVerdictExplanation
+} from "../types";
 
 const API_BASE_URL = "/api";
 
@@ -19,7 +27,6 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   try {
     const res = await fetch(url, options);
     
-    // Attempt to parse JSON response
     let data: any = {};
     const text = await res.text();
     try {
@@ -38,7 +45,6 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     if (err instanceof ApiError) {
       throw err;
     }
-    // Friendly error when server is down or unreachable
     console.error(`Network error requesting ${url}:`, err);
     throw new ApiError(
       `Unable to reach CredentialChain API at http://localhost:4000. Please ensure the backend server and Hardhat node are running.`,
@@ -79,7 +85,7 @@ export const api = {
     });
   },
 
-  verifyDemoAsset: (demoModeType: "original" | "tampered", credentialId?: string): Promise<VerificationResponse> => {
+  verifyDemoAsset: (demoModeType: string, credentialId?: string): Promise<VerificationResponse> => {
     const formData = new FormData();
     formData.append("demoModeType", demoModeType);
     if (credentialId) {
@@ -113,5 +119,41 @@ export const api = {
   // Demo Prefill Data
   getDemoPrefill: (): Promise<{ success: boolean; data: DemoPrefillData }> => {
     return request<{ success: boolean; data: DemoPrefillData }>("/demo/prefill");
+  },
+
+  // AI Assistant Chatbot
+  aiChat: (message: string, context: any = {}): Promise<{ success: boolean; data: { reply: string; isContextAware?: boolean; topic?: string; source: string } }> => {
+    return request<{ success: boolean; data: { reply: string; isContextAware?: boolean; topic?: string; source: string } }>("/ai/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, context })
+    });
+  },
+
+  // Explain Verification Verdict
+  explainVerdict: (verdict: string, details: any): Promise<{ success: boolean; data: AIVerdictExplanation }> => {
+    return request<{ success: boolean; data: AIVerdictExplanation }>("/ai/explain-verdict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ verdict, details })
+    });
+  },
+
+  // AI Document Structure & Consistency Analysis
+  analyzeDocument: (params: { file?: File; credentialId?: string; demoModeType?: string }): Promise<{ success: boolean; data: AIDocumentAnalysis }> => {
+    const formData = new FormData();
+    if (params.file) formData.append("document", params.file);
+    if (params.credentialId) formData.append("credentialId", params.credentialId);
+    if (params.demoModeType) formData.append("demoModeType", params.demoModeType);
+
+    return request<{ success: boolean; data: AIDocumentAnalysis }>("/ai/analyze-document", {
+      method: "POST",
+      body: formData
+    });
+  },
+
+  // Get Demo Catalog
+  getDemoCatalog: (): Promise<{ success: boolean; data: DemoCredentialItem[] }> => {
+    return request<{ success: boolean; data: DemoCredentialItem[] }>("/ai/demo-catalog");
   }
 };

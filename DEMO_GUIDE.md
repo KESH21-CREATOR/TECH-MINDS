@@ -1,83 +1,73 @@
-# CredentialChain - Hackathon Presentation & Live Demo Guide
+# 🏆 CredentialChain - Hackathon 3-Minute Live Pitch & Demo Script
 
-**Target Duration:** 3 to 4 minutes  
-**Presenter Goal:** Demonstrate the full lifecycle: **Issue → Verify (VALID) → Tamper (DETECTED) → Revoke (REVOKED)** with authentic cryptographic SHA-256 computation and live Ethereum smart contract transactions.
-
----
-
-## 🕒 0:00 - 0:45 | Introduction & The Problem
-
-1. Open [http://localhost:5173](http://localhost:5173).
-2. **Talk Track:**
-   > *"Good morning judges! Today, obtaining or verifying an official academic transcript or migration certificate is a painful, multi-week process. Students have to physically visit administrative offices, wait weeks, and follow up repeatedly. Furthermore, paper certificates can be forged by altering grades or forging seals.*
-   >
-   > *CredentialChain gives students portable, independently verifiable proof of their achievements while preserving 100% privacy using off-chain SHA-256 fingerprinting anchored to an Ethereum smart contract."*
+> **Problem:** Academic credential fraud costs billions and manual verification takes weeks.  
+> **Solution:** Decentralized SHA-256 cryptographic anchoring on Ethereum with AI-assisted explanation.
 
 ---
 
-## 🕒 0:45 - 1:30 | Step 1: Institution Issues Academic Credential
+## ⏱️ 3-Minute Live Presentation Script
 
-1. Click on **"Issue a Credential"** in the top navigation (or visit `/institution/issue`).
-2. Click the top-right purple button: **"Prefill Keshav's Demo Data"**.
-   - Note to judges: Student *Keshav Demo (VIT2026DEMO)*, *B.Tech ECE*, *CGPA 8.90*.
-   - Point out that `Keshav_Demo_Transcript.pdf` is attached.
-   - Point out the **Client-Side SHA-256 preview box** showing the 256-bit cryptographic digest (`0x...`).
-3. Click **"Issue Credential & Register on Blockchain"**.
-4. Observe the real-time progress modal:
-   - 1. Computing SHA-256
-   - 2. Sending EVM Transaction to Hardhat Node
-   - 3. Mining Block
-5. Show the **Confirmed Success Screen**:
-   - Point out the **Credential ID**, **Document SHA-256**, **Transaction Hash**, and **Live QR Code**.
+### 🎙️ [0:00 - 0:30] Introduction & The Fraud Problem
+*"Good morning judges. Today, students wait weeks for university registrars to verify transcripts, while employers and embassies struggle to detect forged PDFs with inflated CGPAs.*
+
+*We built **CredentialChain** to solve this: a system combining **cryptographic blockchain proof** with **AI-assisted document understanding**."*
 
 ---
 
-## 🕒 1:30 - 2:00 | Step 2: Student Wallet & Portability
-
-1. Click **"View in Student Wallet"** (or visit `/student`).
-2. **Talk Track:**
-   > *"The student is now in full control of their verified record. They can click 'QR Code' to share with an employer or 'Share Link' to paste in a visa application."*
-3. Click the **"QR Code"** button to open the interactive modal with the live `/verify?id=...` link.
-
----
-
-## 🕒 2:00 - 2:45 | Step 3: Public Verification (Authentic Document)
-
-1. Open the **"Verifier Portal"** (`/verify`).
-2. Click the **"Original Demo Transcript"** button (or upload `Keshav_Demo_Transcript.pdf`).
-3. Click **"Run Cryptographic Verification"**.
-4. Highlight the **🟢 VERIFIED AUTHENTIC** result:
-   - Point out that the **Uploaded Document Hash** matches the **Blockchain Registered Hash** 1-to-1.
-   - Status: `ACTIVE`.
+### 🏛️ [0:30 - 1:15] Step 1: Institutional Issuance
+1. Open **[http://localhost:5173/institution/issue](http://localhost:5173/institution/issue)**.
+2. Click **"Browse 10 Demo Profiles"** and select **Aarav Sharma (B.Tech CSE, 8.72 CGPA)**.
+3. Show the instant client-side **256-bit SHA-256 fingerprint**.
+4. Click **"Issue Credential & Register on Blockchain"**.
+5. Point out:
+   - Real Ethereum transaction hash
+   - Block height
+   - Privacy guarantee: **The raw PDF and student PII stay 100% off-chain. Only the cryptographic hash is anchored.**
 
 ---
 
-## 🕒 2:45 - 3:15 | Step 4: Tamper Detection Demonstration
-
-1. In the Verifier Portal, click **"Tampered Demo Transcript"** (or upload `Keshav_Demo_Transcript_Tampered.pdf`).
-2. Click **"Run Cryptographic Verification"**.
-3. Highlight the **🔴 TAMPER DETECTED** banner:
-   - Show the side-by-side hash comparison.
-   - **Talk Track:**
-     > *"In this tampered copy, the CGPA was modified from 8.90 to 9.90. Because SHA-256 has the avalanche effect, modifying a single byte changes the entire digest. The verifier instantly catches the fraud without calling the university."*
+### 📱 [1:15 - 1:45] Step 2: Student Wallet & Sovereign Ownership
+1. Open **[http://localhost:5173/student](http://localhost:5173/student)**.
+2. Show Aarav's digital credential card with green **ACTIVE** status.
+3. Click **"QR Code"**:
+   - Toggle to **Mobile Scan (Wi-Fi)** and show how an employer can scan it with their smartphone camera.
 
 ---
 
-## 🕒 3:15 - 3:45 | Step 5: On-Chain Revocation
-
-1. Navigate back to **Institution Portal** (`/institution`).
-2. Find the issued credential and click the red **"Revoke"** button.
-3. Enter reason: *"Administrative correction / Superseded by new transcript"*.
-4. Click **"Confirm Revocation"** and observe the on-chain transaction confirm.
-5. Return to **Verifier Portal** (`/verify?id=...`) and run verification again.
-6. Highlight the **🟠 CREDENTIAL REVOKED** banner.
+### 🔍 [1:45 - 2:30] Step 3: Instant Cryptographic Verification & AI Analysis
+1. Open **[http://localhost:5173/verify](http://localhost:5173/verify)**.
+2. Click **"Authentic Transcript (Aarav Sharma)"** → Verify:
+   - **Result:** **🟢 VERIFIED AUTHENTIC** *(100% SHA-256 match in < 1 second)*.
+3. Click **"Explain this result with AI"**:
+   - Show how CredentialChain AI translates the mathematical hash match into plain English.
+4. Click **"Analyze Document with AI"**:
+   - Show the structured AI Document Analysis card (Detected Student, CGPA: 8.72, Consistency: ✓ Consistent, Confidence: 95%).
+   - Highlight: *"AI assists with structural insights, but cryptographic proof is the definitive trust layer."*
 
 ---
 
-## 🕒 3:45 - 4:00 | Conclusion & Architecture Summary
+### ⚠️ [2:30 - 2:50] Step 4: Live Tamper Detection
+1. In the Verifier Portal, click **"Tampered Transcript (Altered to 9.72)"** → Verify:
+   - **Result:** **🔴 TAMPER DETECTED**.
+2. Point out the SHA-256 avalanche effect: Modifying a single character completely alters the hash.
+3. Click **"Explain why this is tampered with AI"** → AI explains the cryptographic mismatch.
 
-1. Click on **"About"** (`/about`) to show the architecture summary.
-2. Recap:
-   - Zero student PII on-chain.
-   - True self-sovereign proof.
-   - Immediate verification in under 1 second.
+---
+
+### 🤖 [2:50 - 3:00] Step 5: CredentialChain AI Assistant & Conclusion
+1. Click the floating **CredentialChain AI** button in the bottom-right corner.
+2. Ask: *"Why is blockchain used?"* or *"Is my transcript private?"*.
+3. Conclude:
+   *"With CredentialChain, academic credentials are owned by students, verified in seconds, and explainable with AI. Thank you!"*
+
+---
+
+## 🛠️ Demo Asset Quick Reference
+
+| Action | File to Pick | Expected Verdict |
+|---|---|---|
+| **Authentic Verification** | `Demo_Transcript_Aarav_Sharma.pdf` | 🟢 **VERIFIED AUTHENTIC** |
+| **Authentic Verification 2** | `Demo_Transcript_Priya_Menon.pdf` | 🟢 **VERIFIED AUTHENTIC** |
+| **Tamper Detection 1** | `Demo_Transcript_Aarav_Sharma_Tampered.pdf` | 🔴 **TAMPER DETECTED** (8.72 → 9.72) |
+| **Tamper Detection 2** | `Demo_Transcript_Priya_Menon_Tampered.pdf` | 🔴 **TAMPER DETECTED** (9.12 → 9.99) |
+| **Revocation Test** | Revoke via `/institution` | 🟠 **CREDENTIAL REVOKED** |

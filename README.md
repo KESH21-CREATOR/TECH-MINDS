@@ -2,7 +2,7 @@
 
 > **Track:** Blockchain / Web3 for Social Impact  
 > **Core Value Proposition:** *"Students should not have to repeatedly ask their institution to prove that their academic certificate is genuine."*  
-> **Tagline:** Academic credentials. Verified in seconds.
+> **Tagline:** Academic credentials. Verified cryptographically in seconds with AI-assisted understanding.
 
 ---
 
@@ -21,43 +21,55 @@ Once issued, paper and unverified PDF documents are easily:
 - **Difficult to verify**, forcing embassies and employers to send manual verification emails to issuing registrars.
 
 ### The CredentialChain Solution
-CredentialChain is a decentralized academic credential verification platform. An authorized institution uploads an academic document and anchors its **cryptographic SHA-256 fingerprint** into an Ethereum smart contract (`AcademicCredentialRegistry.sol`). 
+CredentialChain combines **cryptographic proof, blockchain anchoring, and AI-assisted understanding** to make academic credentials easier to issue, own, share, and verify.
 
-The student receives a digital credential representation with a verifiable QR code and URL. Any third party (university, employer, embassy) can upload the received PDF or scan the QR code to verify authenticity in **under 1 second**.
+An authorized institution uploads an academic document and anchors its **cryptographic SHA-256 fingerprint** into an Ethereum smart contract (`AcademicCredentialRegistry.sol`). The student receives a digital credential with a verifiable QR code and URL. Any third party can upload the received PDF or scan the QR code to verify authenticity in **under 1 second**.
 
 ---
 
 ## 2. System Architecture & Privacy Model
 
 ```
-+-----------------------------------------------------------------------------------+
-|                                   USER EXPERIENCE                                 |
-|   INSTITUTION PORTAL            STUDENT WALLET                 PUBLIC VERIFIER    |
-|   (/institution/issue)            (/student)                      (/verify)       |
-+-------------------------+-------------------------------+-------------------------+
-                          |                               |
-                          v                               v
-+-----------------------------------------------------------------------------------+
-|                           BACKEND API (Node.js + Express)                         |
-|   - Multer File Stream Reader     - Crypto SHA-256 Engine (256-bit hash digest)   |
-|   - Ethers.js v6 Signer/Provider  - Persistent Metadata DB (Zero PII on-chain)    |
-+-----------------------------------------+-----------------------------------------+
-                                          | JSON-RPC (Port 8545)
-                                          v
-+-----------------------------------------------------------------------------------+
-|                         BLOCKCHAIN TRUST LAYER (Hardhat EVM)                      |
-|   AcademicCredentialRegistry.sol                                                  |
-|   - Mapping: credentialId => (bytes32 documentHash, address issuer, status, etc.) |
-|   - Statuses: ACTIVE (0) | REVOKED (1)                                            |
-|   - Events: CredentialIssued, CredentialRevoked                                   |
-+-----------------------------------------------------------------------------------+
+                    CredentialChain Platform
+                               │
+       ┌───────────────────────┼───────────────────────┐
+       ↓                       ↓                       ↓
+  Institution               Student                Verifier
+  (Issue PDF)           (Wallet & QR)            (Upload PDF)
+       │                       │                       │
+       ↓                       ↓                       ↓
+     PDF                  Credential              Upload PDF
+       │                    Wallet                     │
+       ↓                       │                       ↓
+    SHA-256                   QR                    SHA-256
+       │                       │                       │
+       └───────────────────┬───┴───────────────────────┘
+                           ↓
+                   Blockchain Registry
+               (AcademicCredentialRegistry.sol)
+                           │
+                           ↓
+               Cryptographic Verification
+               ┌───────────┼───────────┐
+               ↓           ↓           ↓
+             VALID      TAMPERED    REVOKED
+               │           │           │
+               └───────────┼───────────┘
+                           ↓
+                  CredentialChain AI
+               ┌───────────┴───────────┐
+               ↓                       ↓
+     [Explain with AI]       [Analyze Document with AI]
+     (Verdict Explainer)     (Structure & Consistency)
 ```
 
-### Critical Privacy Architecture: On-Chain vs. Off-Chain
-| Layer | Stored Data | Reason |
-| :--- | :--- | :--- |
-| **OFF-CHAIN** *(Student & University)* | Full PDF Transcript, course grades, personal marks, student address, registration number. | Protects student privacy and complies with data privacy laws. |
-| **ON-CHAIN** *(Hardhat EVM Smart Contract)* | 32-byte SHA-256 document fingerprint (`bytes32`), issuer Ethereum address, timestamp, status (`ACTIVE`/`REVOKED`). | Provides an immutable, trustless notary that verifiers can independently check without trusting a centralized server. |
+### Trust Layer vs. Assistant Layer
+| Layer | Role | Technology |
+|---|---|---|
+| **Trust Layer** | Absolute source of truth for **VALID / TAMPERED / REVOKED** with 100% mathematical certainty | SHA-256 Cryptographic Hashing + Ethereum EVM Smart Contract |
+| **Assistant Layer** | Explains verification results, analyzes visual structure, and assists users in natural language | CredentialChain AI |
+
+> **Key Rule:** *"Cryptographic verification is the source of truth. AI provides explanations and assistance."*
 
 ---
 
@@ -66,97 +78,122 @@ The student receives a digital credential representation with a verifiable QR co
 - **Frontend:** React 18, Vite, TypeScript, Tailwind CSS, React Router v6, Lucide Icons, `qrcode.react`.
 - **Backend:** Node.js, Express, Ethers.js v6, Multer, Node Crypto (SHA-256).
 - **Blockchain / Smart Contract:** Solidity 0.8.20, Hardhat EVM Local Network (Chain ID: 31337), OpenZeppelin `Ownable`.
-- **Demo Asset Engine:** `pdf-lib` automated transcript and tampering generator.
+- **AI Assistant & Document Analysis:** Context-aware deterministic domain engine with optional OpenAI LLM fallback (`OPENAI_API_KEY`).
+- **Demo Asset Engine:** `pdf-lib` automated generator for 10 synthetic certificates and 3 tampered demonstration documents.
 
 ---
 
-## 4. Quick Start Guide
+## 4. Dual-Mode AI Architecture
+
+CredentialChain AI operates seamlessly in two modes:
+
+1. **Mode 1 (Local Demo Mode - Default):**
+   - Operates **100% offline** using a rich, structured deterministic knowledge base.
+   - **No API key or internet connection required.**
+   - Hackathon demonstrations are guaranteed to never fail due to API rate limits or network issues.
+
+2. **Mode 2 (Optional OpenAI LLM Mode):**
+   - Configured simply by adding `OPENAI_API_KEY=your_key` in `backend/.env`.
+   - Strictly grounded on real on-chain transaction data, preventing hallucinations.
+
+---
+
+## 5. Synthetic Demo PDF Catalog (10 Authentic + 3 Tampered)
+
+All synthetic documents are generated with `pdf-lib` and clearly labeled:
+`"SAMPLE / DEMO DOCUMENT — NOT AN OFFICIAL ACADEMIC RECORD"`
+
+### 10 Authentic Certificates
+| # | Filename | Institution | Programme | CGPA | Type |
+|---|---|---|---|---|---|
+| 1 | `Demo_Transcript_Aarav_Sharma.pdf` | Northstar Institute of Technology | B.Tech Computer Science | 8.72 | Transcript |
+| 2 | `Demo_Transcript_Priya_Menon.pdf` | Crescent Valley University | B.Tech Electronics & Comm. | 9.12 | Transcript |
+| 3 | `Demo_Degree_Rohan_Verma.pdf` | Riverstone Technical University | B.Tech Mechanical Engineering | 8.41 | Degree |
+| 4 | `Demo_Transcript_Ananya_Rao.pdf` | Horizon School of Engineering | B.Tech AI & Data Science | 9.34 | Transcript |
+| 5 | `Demo_Migration_Karthik_Iyer.pdf` | Pioneer University | B.Sc Computer Science | 8.67 | Migration |
+| 6 | `Demo_Transcript_Nisha_Kapoor.pdf` | Summit Institute of Technology | B.Tech Information Technology | 8.95 | Transcript |
+| 7 | `Demo_Degree_Arjun_Nair.pdf` | Bluehaven University | B.Tech Civil Engineering | 8.28 | Degree |
+| 8 | `Demo_Transcript_Meera_Krishnan.pdf` | Eastbridge Institute of Science | B.Tech Biotechnology | 9.01 | Transcript |
+| 9 | `Demo_Migration_Vivek_Patel.pdf` | Oakridge Technical University | B.Com Computer Applications | 8.56 | Migration |
+| 10 | `Demo_Transcript_Sanjana_Reddy.pdf` | Vertex Institute of Technology | B.Tech Electronics Engineering | 9.26 | Transcript |
+
+### 3 Tampered Demonstration Documents
+| Filename | Base Student | Alteration | Result |
+|---|---|---|---|
+| `Demo_Transcript_Aarav_Sharma_Tampered.pdf` | Aarav Sharma | CGPA altered from `8.72` → `9.72` | 🔴 TAMPER DETECTED |
+| `Demo_Transcript_Priya_Menon_Tampered.pdf` | Priya Menon | CGPA altered from `9.12` → `9.99` | 🔴 TAMPER DETECTED |
+| `Demo_Transcript_Ananya_Rao_Tampered.pdf` | Ananya Rao | CGPA altered from `9.34` → `9.95` | 🔴 TAMPER DETECTED |
+
+---
+
+## 6. Quickstart & Local Installation
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- `npm` (v9 or higher)
+- **Node.js:** v18 or higher (v20+ recommended)
+- **npm:** v9 or higher
 
-### Windows (1-Click Launcher)
+### Windows 1-Click Launch
 Double-click `start-demo.bat` or run:
 ```cmd
 start-demo.bat
 ```
 
-### macOS / Linux (1-Click Launcher)
-Make executable and run:
+### macOS / Linux Launch
 ```bash
 chmod +x start-demo.sh
 ./start-demo.sh
 ```
 
 ### Manual Step-by-Step Launch
-1. **Install Root & Sub-package Dependencies:**
+1. **Start Hardhat Blockchain Node:**
    ```bash
-   npm run install:all
+   npx hardhat node --hostname 127.0.0.1
    ```
-2. **Start Local Hardhat EVM Node:**
-   ```bash
-   npx hardhat node
-   ```
-3. **Deploy Smart Contract & Generate Demo PDF Files (In a second terminal):**
+2. **Deploy Smart Contract & Seed Demo Assets:**
    ```bash
    node scripts/wait-and-deploy.js
    ```
-4. **Start Backend API (Port 4000):**
+3. **Start Backend Server:**
    ```bash
    cd backend && npm start
    ```
-5. **Start Frontend Web App (Port 5173):**
+4. **Start Frontend Web App:**
    ```bash
    cd frontend && npm run dev
    ```
-6. Open your browser to [http://localhost:5173](http://localhost:5173).
+
+- **Frontend:** [http://localhost:5173](http://localhost:5173)
+- **Backend API:** [http://localhost:4000/api/health](http://localhost:4000/api/health)
+- **AI Assistant:** [http://localhost:4000/api/ai/chat](http://localhost:4000/api/ai/chat)
+- **Blockchain Node:** `http://127.0.0.1:8545`
 
 ---
 
-## 5. Endpoints & URLs
+## 7. Complete Hackathon Demo Talk Track
 
-| Service | URL | Description |
-| :--- | :--- | :--- |
-| **Frontend Web App** | `http://localhost:5173` | React Single Page Application |
-| **Backend Health Check** | `http://localhost:4000/api/health` | Live EVM, Smart Contract & Server Health |
-| **Blockchain RPC** | `http://127.0.0.1:8545` | Hardhat Local EVM Node (ChainID: 31337) |
-| **Public Verifier Portal** | `http://localhost:5173/verify` | Interactive Verification & Tamper Check |
-| **Student Wallet** | `http://localhost:5173/student` | Digital Credential Wallet & QR Codes |
-| **Institution Portal** | `http://localhost:5173/institution` | Credential Issuance & Revocation |
-
----
-
-## 6. REST API Reference
-
-### Health Check
-- `GET /api/health`
-  - Returns backend connectivity, contract address, latest EVM block height, and active/revoked statistics.
-
-### Issue Credential
-- `POST /api/credentials/issue` *(multipart/form-data)*
-  - **Body:** `document` (PDF file), `studentName`, `registerNumber`, `programme`, `cgpa`, `graduationYear`, `credentialType`, `recipientWallet`.
-  - Computes SHA-256, submits `issueCredential` transaction to smart contract, stores metadata off-chain, and returns transaction hash.
-
-### Verify Credential
-- `POST /api/credentials/verify` *(multipart/form-data or JSON)*
-  - **Body:** `document` (PDF file) OR `credentialId` OR `demoModeType` ("original" | "tampered").
-  - Queries smart contract, computes uploaded document hash, compares digests, and returns verdict: `VALID`, `TAMPERED`, `REVOKED`, or `NOT_FOUND`.
-
-### Revoke Credential
-- `POST /api/credentials/:id/revoke` *(JSON)*
-  - **Body:** `reason` (string).
-  - Submits `revokeCredential` transaction to the smart contract.
+1. **Open CredentialChain** at [http://localhost:5173](http://localhost:5173).
+2. Navigate to **Institution Portal** (`/institution/issue`).
+3. Click **"Browse 10 Demo Profiles"** and pick **Aarav Sharma**.
+4. Click **"Issue Credential & Register on Blockchain"** → Show real Ethereum transaction hash and block number.
+5. Navigate to **Student Wallet** (`/student`) → Show active certificate and QR code.
+6. Navigate to **Verifier Portal** (`/verify`).
+7. Select **Authentic Transcript (Aarav Sharma)** → Result: **🟢 VALID**.
+8. Click **"Explain this result with AI"** → AI explains the cryptographic 100% hash match.
+9. Click **"Analyze Document with AI"** → Show extracted fields and consistency score.
+10. Select **Tampered Transcript (Altered to 9.72)** → Result: **🔴 TAMPER DETECTED**.
+11. Click **"Explain with AI"** → AI explains the SHA-256 avalanche effect.
+12. Go to **Institution Portal**, click **"Revoke"** on the credential.
+13. Return to Verifier → Result: **🟠 REVOKED**.
+14. Open floating **CredentialChain AI** in bottom-right and ask *"Why is blockchain useful here?"*.
 
 ---
 
-## 7. Technical Honesty & Disclaimers
+## 8. Smart Contract Details
 
-1. **What Blockchain Does:** Blockchain makes unauthorized modifications **detectable** because the altered document's cryptographic fingerprint will not match the immutable hash registered on-chain.
-2. **What Blockchain Does NOT Do:** Blockchain does not store the PDF file or confidential transcript contents directly. The document remains off-chain in the student's possession.
-3. **Demo Mode:** Demo mode pre-fills sample academic records for student *Keshav Demo (VIT2026DEMO)* to enable rapid evaluation by judges, but all smart contract transactions and SHA-256 computations execute genuinely.
-
----
-
-## 8. License
-MIT License. Developed for the Hackathon Demonstration.
+- **Contract:** `AcademicCredentialRegistry.sol`
+- **Solidity Version:** `^0.8.20`
+- **Security Features:**
+  - OpenZeppelin `Ownable` role-based issuer authorization.
+  - Collision-resistant document fingerprint anchoring (`bytes32`).
+  - Immutable historical audit logs.
+  - Zero PII stored on-chain.
