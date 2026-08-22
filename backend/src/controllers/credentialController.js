@@ -107,6 +107,7 @@ class CredentialController {
         process.env.DEFAULT_INSTITUTION_NAME ||
         "CredentialChain Demo University";
 
+      const aadharNumber = req.body.aadharNumber || req.body.aadhar || req.body.aadhaar || "";
       const notes = req.body.notes || "";
 
       // Exact cryptographic SHA-256 fingerprint of the uploaded PDF file
@@ -204,6 +205,7 @@ class CredentialController {
         blockNumber: txResult.blockNumber,
         gasUsed: txResult.gasUsed,
         issuedTimestamp: txResult.issuedAt,
+        aadharNumber: aadharNumber ? (aadharNumber.length >= 4 ? `XXXX-XXXX-${aadharNumber.replace(/[\s-]+/g, "").slice(-4)}` : aadharNumber) : undefined,
         notes: notes || ""
       };
 

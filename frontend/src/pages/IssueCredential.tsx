@@ -33,6 +33,7 @@ export const IssueCredential: React.FC = () => {
   const [cgpa, setCgpa] = useState("");
   const [graduationYear, setGraduationYear] = useState("2026");
   const [credentialType, setCredentialType] = useState("Academic Transcript");
+  const [aadharNumber, setAadharNumber] = useState("");
   const [recipientWallet, setRecipientWallet] = useState("");
   const [customCredentialId, setCustomCredentialId] = useState("");
   const [notes, setNotes] = useState("");
@@ -169,6 +170,7 @@ export const IssueCredential: React.FC = () => {
       formData.append("cgpa", cgpa || "8.90");
       formData.append("graduationYear", graduationYear || "2026");
       formData.append("credentialType", credentialType || "Academic Transcript");
+      if (aadharNumber) formData.append("aadharNumber", aadharNumber);
       if (recipientWallet) formData.append("recipientWallet", recipientWallet);
       if (customCredentialId) formData.append("customCredentialId", customCredentialId);
       if (notes) formData.append("notes", notes);
@@ -518,6 +520,17 @@ export const IssueCredential: React.FC = () => {
                   placeholder="2026"
                   value={graduationYear}
                   onChange={(e) => setGraduationYear(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 font-mono focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-medium mb-1">Aadhaar / National ID (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 5412 8963 7412"
+                  value={aadharNumber}
+                  onChange={(e) => setAadharNumber(e.target.value)}
                   className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 font-mono focus:outline-none focus:border-brand-500"
                 />
               </div>

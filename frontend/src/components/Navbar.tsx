@@ -48,21 +48,16 @@ export const Navbar: React.FC = () => {
     return "/";
   };
 
-  const navLinks = isAuthenticated
-    ? [
-        { name: "Dashboard", path: getDashboardPath(), icon: LayoutDashboard },
-        { name: "Issue", path: "/institution/issue", icon: PlusCircle, showFor: "Institution" },
-        { name: "Student Wallet", path: "/student", icon: Wallet, showFor: "Student" },
-        { name: "Verify Portal", path: "/verify", icon: FileCheck, accent: true },
-        { name: "Registry", path: "/credentials", icon: ShieldCheck }
-      ].filter((link) => !link.showFor || (user && user.role === link.showFor))
-    : [
-        { name: "Home", path: "/", icon: Layers },
-        { name: "Institution", path: "/institution", icon: Building2 },
-        { name: "Student Wallet", path: "/student", icon: Wallet },
-        { name: "Verify Credential", path: "/verify", icon: FileCheck, accent: true },
-        { name: "About", path: "/about", icon: Info }
-      ];
+  // KEEP ALL ORIGINAL FAMILIAR LINKS ALWAYS VISIBLE
+  const navLinks = [
+    { name: "Home", path: "/", icon: Layers },
+    { name: "Institution", path: "/institution", icon: Building2 },
+    { name: "Issue", path: "/institution/issue", icon: PlusCircle, highlight: true },
+    { name: "Student Wallet", path: "/student", icon: Wallet },
+    { name: "Verifier Portal", path: "/verify", icon: FileCheck, accent: true },
+    { name: "Registry", path: "/credentials", icon: ShieldCheck },
+    { name: "About", path: "/about", icon: Info }
+  ];
 
   const isActive = (path: string) => {
     if (path === "/" && location.pathname !== "/") return false;
@@ -100,7 +95,7 @@ export const Navbar: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1 text-sm font-medium">
+          <nav className="hidden xl:flex items-center gap-1 text-sm font-medium">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const active = isActive(link.path);
@@ -108,15 +103,15 @@ export const Navbar: React.FC = () => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-semibold ${
                     active
-                      ? "bg-slate-800 text-white font-semibold shadow-inner"
+                      ? "bg-slate-800 text-white shadow-inner"
                       : link.accent
                       ? "text-brand-300 hover:text-white hover:bg-brand-950/50"
                       : "text-slate-300 hover:text-white hover:bg-slate-800/60"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${active ? "text-brand-400" : "text-slate-400"}`} />
+                  <Icon className={`w-3.5 h-3.5 ${active ? "text-brand-400" : "text-slate-400"}`} />
                   <span>{link.name}</span>
                 </Link>
               );
@@ -130,18 +125,18 @@ export const Navbar: React.FC = () => {
 
             {/* Authentication Buttons (Logged Out) */}
             {!isAuthenticated ? (
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Link
                   to="/signin"
-                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-xl transition"
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-xl transition"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-500 rounded-xl transition shadow-sm shadow-brand-600/20"
+                  className="px-3 py-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-500 rounded-xl transition shadow-sm shadow-brand-600/20"
                 >
-                  Get Started
+                  Sign Up
                 </Link>
               </div>
             ) : (
@@ -154,7 +149,7 @@ export const Navbar: React.FC = () => {
                   <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs">
                     {user?.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="hidden md:inline max-w-[100px] truncate">{user?.name}</span>
+                  <span className="hidden sm:inline max-w-[90px] truncate">{user?.name}</span>
                   <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
                     user?.role === "Institution"
                       ? "bg-brand-500/20 text-brand-300"
@@ -181,7 +176,7 @@ export const Navbar: React.FC = () => {
                       className="flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition"
                     >
                       <LayoutDashboard className="w-4 h-4 text-brand-400" />
-                      <span>Dashboard</span>
+                      <span>{user?.role} Dashboard</span>
                     </Link>
 
                     <Link
@@ -208,7 +203,7 @@ export const Navbar: React.FC = () => {
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none"
+              className="xl:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -218,7 +213,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-slate-800 bg-slate-900/95 backdrop-blur-lg px-4 pt-2 pb-4 space-y-1">
+        <div className="xl:hidden border-b border-slate-800 bg-slate-900/95 backdrop-blur-lg px-4 pt-2 pb-4 space-y-1">
           {navLinks.map((link) => {
             const Icon = link.icon;
             const active = isActive(link.path);
@@ -253,7 +248,7 @@ export const Navbar: React.FC = () => {
                 onClick={() => setMobileMenuOpen(false)}
                 className="py-2 text-center text-xs font-bold text-white bg-brand-600 rounded-xl"
               >
-                Get Started
+                Sign Up
               </Link>
             </div>
           )}

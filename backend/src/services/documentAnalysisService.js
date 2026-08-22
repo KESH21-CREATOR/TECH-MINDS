@@ -213,6 +213,22 @@ class DocumentAnalysisService {
       }
     }
 
+    // Fallback Aadhaar from registration metadata / notes
+    if (!aadharMasked && fallbackRecord) {
+      if (fallbackRecord.aadharNumber) {
+        const raw = String(fallbackRecord.aadharNumber).replace(/[\s-]+/g, "");
+        aadharMasked = raw.startsWith("XXXX") ? raw : `XXXX-XXXX-${raw.slice(-4)}`;
+      } else if (fallbackRecord.notes) {
+        const noteMatch = fallbackRecord.notes.match(/(?:Aadhaar|Aadhar|UID)[:.\-#\s]*([0-9\s-]{10,16})/i);
+        if (noteMatch && noteMatch[1]) {
+          const digits = noteMatch[1].replace(/[\s-]+/g, "");
+          if (digits.length >= 4) {
+            aadharMasked = `XXXX-XXXX-${digits.slice(-4)}`;
+          }
+        }
+      }
+    }
+
     // Passport Number (1 letter + 7 digits e.g. A1234567)
     const passportRegex = /\b([A-Z][0-9]{7})\b/;
     const passportMatch = text.match(passportRegex);

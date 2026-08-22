@@ -24,44 +24,23 @@ export const App: React.FC = () => {
           <Navbar />
           <main className="flex-grow">
             <Routes>
-              {/* Public Routes */}
+              {/* Core Application Pages */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/signin" element={<SignInPage />} />
               <Route path="/signup" element={<SignUpPage />} />
+              <Route path="/institution" element={<InstitutionDashboard />} />
+              <Route path="/institution/issue" element={<IssueCredential />} />
+              <Route path="/student" element={<StudentWallet />} />
               <Route path="/verify" element={<VerifierPortal />} />
               <Route path="/credentials" element={<CredentialExplorer />} />
               <Route path="/about" element={<AboutPage />} />
 
-              {/* Protected Routes */}
+              {/* Profile Route */}
               <Route
                 path="/profile"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requireAuth={true}>
                     <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/institution"
-                element={
-                  <ProtectedRoute allowedRoles={["Institution"]}>
-                    <InstitutionDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/institution/issue"
-                element={
-                  <ProtectedRoute allowedRoles={["Institution"]}>
-                    <IssueCredential />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student"
-                element={
-                  <ProtectedRoute allowedRoles={["Student"]}>
-                    <StudentWallet />
                   </ProtectedRoute>
                 }
               />

@@ -13,15 +13,14 @@ import {
   AlertCircle,
   RefreshCw,
   Eye,
-  EyeOff,
-  GraduationCap
+  EyeOff
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { UserRole } from "../types";
 
 export const SignUpPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signup, isAuthenticated, user } = useAuth();
+  const { signup, isAuthenticated, user, signout } = useAuth();
 
   const [role, setRole] = useState<UserRole>("Student");
   const [name, setName] = useState("");
@@ -39,13 +38,6 @@ export const SignUpPage: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Redirect if already authenticated
-  React.useEffect(() => {
-    if (isAuthenticated && user) {
-      handleRoleRedirect(user.role);
-    }
-  }, [isAuthenticated, user]);
 
   const handleRoleRedirect = (userRole: UserRole) => {
     if (userRole === "Institution") navigate("/institution");
@@ -72,8 +64,8 @@ export const SignUpPage: React.FC = () => {
 
     try {
       const newUser = await signup({
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
         password,
         role,
         institutionName: role === "Institution" ? institutionName : undefined,
@@ -127,6 +119,22 @@ export const SignUpPage: React.FC = () => {
         {/* RIGHT COLUMN: SIGN UP CARD */}
         <div className="lg:col-span-7">
           <div className="glass-card p-7 sm:p-8 rounded-3xl border border-slate-800 shadow-2xl bg-slate-900/90 space-y-5 backdrop-blur-xl">
+            {/* Active Session Notice if already logged in */}
+            {isAuthenticated && user && (
+              <div className="p-3 bg-brand-950/40 border border-brand-800/60 rounded-2xl text-xs flex items-center justify-between gap-2 animate-in fade-in">
+                <div className="flex items-center gap-2 text-slate-200">
+                  <UserIcon className="w-4 h-4 text-brand-400" />
+                  <span>Currently signed in as <strong className="text-white">{user.name}</strong></span>
+                </div>
+                <button
+                  onClick={signout}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px]"
+                >
+                  Sign Out First
+                </button>
+              </div>
+            )}
+
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-white">Create Account</h2>
               <p className="text-xs text-slate-400 mt-1">
