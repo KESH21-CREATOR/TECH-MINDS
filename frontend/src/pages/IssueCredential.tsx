@@ -28,6 +28,7 @@ export const IssueCredential: React.FC = () => {
 
   // Form states
   const [studentName, setStudentName] = useState("");
+  const [studentEmail, setStudentEmail] = useState("");
   const [registerNumber, setRegisterNumber] = useState("");
   const [programme, setProgramme] = useState("");
   const [cgpa, setCgpa] = useState("");
@@ -164,10 +165,11 @@ export const IssueCredential: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("document", file);
-      formData.append("studentName", studentName || "Keshav Demo");
-      formData.append("registerNumber", registerNumber || "VIT2026DEMO");
-      formData.append("programme", programme || "B.Tech Electronics and Communication Engineering");
-      formData.append("cgpa", cgpa || "8.90");
+      formData.append("studentName", studentName);
+      if (studentEmail) formData.append("studentEmail", studentEmail);
+      formData.append("registerNumber", registerNumber);
+      formData.append("programme", programme);
+      formData.append("cgpa", cgpa || "N/A");
       formData.append("graduationYear", graduationYear || "2026");
       formData.append("credentialType", credentialType || "Academic Transcript");
       if (aadharNumber) formData.append("aadharNumber", aadharNumber);
@@ -451,9 +453,20 @@ export const IssueCredential: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Keshav Demo"
+                  placeholder="e.g. Rahul Kumar"
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-medium mb-1">Student Email (Optional - Links to Wallet)</label>
+                <input
+                  type="email"
+                  placeholder="e.g. rahul@gmail.com"
+                  value={studentEmail}
+                  onChange={(e) => setStudentEmail(e.target.value)}
                   className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-brand-500"
                 />
               </div>
@@ -463,19 +476,19 @@ export const IssueCredential: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. VIT2026DEMO"
+                  placeholder="e.g. 24BCE1234"
                   value={registerNumber}
                   onChange={(e) => setRegisterNumber(e.target.value)}
                   className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 font-mono focus:outline-none focus:border-brand-500"
                 />
               </div>
 
-              <div className="sm:col-span-2">
+              <div>
                 <label className="block text-slate-300 font-medium mb-1">Programme / Degree *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. B.Tech Electronics and Communication Engineering"
+                  placeholder="e.g. B.Tech Computer Science and Engineering"
                   value={programme}
                   onChange={(e) => setProgramme(e.target.value)}
                   className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-brand-500"

@@ -244,9 +244,11 @@ class AuthController {
         });
       }
 
-      const { avatarUrl, name, walletAddress } = req.body;
+      const { avatarUrl, avatarType, avatarValue, name, walletAddress } = req.body;
       const updates = {};
       if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
+      if (avatarType !== undefined) updates.avatarType = avatarType;
+      if (avatarValue !== undefined) updates.avatarValue = avatarValue;
       if (name && name.trim()) updates.name = name.trim();
       if (walletAddress !== undefined) updates.walletAddress = walletAddress;
 

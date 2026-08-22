@@ -3,8 +3,15 @@ const router = express.Router();
 const credentialController = require("../controllers/credentialController");
 const { upload } = require("../services/storageService");
 
+const { authenticateToken } = require("../middleware/authMiddleware");
+
 // Health check
 router.get("/health", (req, res) => credentialController.getHealth(req, res));
+
+// User-Specific Credentials (Student Wallet)
+router.get("/credentials/my", authenticateToken, (req, res) =>
+  credentialController.getMyCredentials(req, res)
+);
 
 // Credential Issuance (supports any file field name: document, file, pdf, etc.)
 router.post("/credentials/issue", upload.any(), (req, res) =>

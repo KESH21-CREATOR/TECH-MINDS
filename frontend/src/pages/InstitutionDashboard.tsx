@@ -17,8 +17,10 @@ import {
 import { api } from "../services/api";
 import { Credential, HealthStatus } from "../types";
 import { HashBadge } from "../components/HashBadge";
+import { useAuth } from "../context/AuthContext";
 
 export const InstitutionDashboard: React.FC = () => {
+  const { user } = useAuth();
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,7 +107,7 @@ export const InstitutionDashboard: React.FC = () => {
             </span>
           </div>
           <p className="text-slate-400 text-sm">
-            {health?.issuerWallet ? "CredentialChain Demo University" : "Academic Credential Registry Management"}
+            {user?.institutionName || (health?.issuerWallet ? "CredentialChain Autonomous University" : "Academic Credential Registry Management")}
             {health?.issuerWallet && (
               <span className="ml-2 inline-flex items-center text-xs font-mono text-slate-400">
                 (Issuer: <HashBadge hash={health.issuerWallet} truncateLength={5} color="slate" />)

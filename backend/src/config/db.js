@@ -64,6 +64,9 @@ class JsonDatabase {
           registerNumber: "VIT2026DEMO",
           programme: "B.Tech Electronics & Communication Engineering",
           walletAddress: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          avatarType: "preset",
+          avatarValue: "avatar-1",
+          avatarUrl: "",
           isDemo: true,
           createdAt: new Date().toISOString()
         },
@@ -76,6 +79,9 @@ class JsonDatabase {
           institutionName: "CredentialChain Autonomous University",
           institutionCode: "CCU-DEMO-2026",
           issuerAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+          avatarType: "preset",
+          avatarValue: "avatar-3",
+          avatarUrl: "",
           isDemo: true,
           createdAt: new Date().toISOString()
         },
@@ -86,6 +92,9 @@ class JsonDatabase {
           passwordHash: bcrypt.hashSync("Demo@123", 10),
           role: "Verifier",
           organizationName: "Global Talent & Background Verification Corp",
+          avatarType: "preset",
+          avatarValue: "avatar-5",
+          avatarUrl: "",
           isDemo: true,
           createdAt: new Date().toISOString()
         }
@@ -98,7 +107,6 @@ class JsonDatabase {
           this.cache.users.push(demo);
           modified = true;
         } else {
-          // Always refresh demo credentials so Demo@123 always works
           this.cache.users[existingIdx] = {
             ...this.cache.users[existingIdx],
             ...demo,
@@ -110,7 +118,6 @@ class JsonDatabase {
 
       if (modified) {
         this.save();
-        console.log("[DB] Pre-seeded / verified all 3 demo accounts (Student, Institution, Verifier).");
       }
     } catch (err) {
       console.warn("Demo user seed warning:", err.message);
@@ -137,7 +144,10 @@ class JsonDatabase {
     }
 
     const record = {
-      id: `USR-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+      id: `USR-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      avatarType: userData.avatarType || "initials",
+      avatarValue: userData.avatarValue || "",
+      avatarUrl: userData.avatarUrl || "",
       ...userData,
       createdAt: new Date().toISOString()
     };
@@ -182,6 +192,63 @@ class JsonDatabase {
         return docHashClean === cleanHash;
       }) || null
     );
+  }
+
+  /**
+   * User-Isolated Credentials Query
+   * Returns ONLY credentials belonging to the authenticated student
+   */
+  findCredentialsByStudent(user) {
+    this.load();
+    if (!user) return [];
+
+    const isDemoUser = user.isDemo === true || user.email.toLowerCase() === "student@credentialchain.demo";
+
+    if (isDemoUser) {
+      // Demo student sees only demo credentials
+      return this.cache.credentials
+        .filter((c) => {
+          const isDemoCred =
+            c.studentEmail === "student@credentialchain.demo" ||
+            c.registerNumber === "VIT2026DEMO" ||
+            c.credentialId.includes("VIT2026DEMO") ||
+            c.credentialId.includes("VITDEMO");
+          return isDemoCred;
+        })
+        .reverse();
+    }
+
+    // Real student sees ONLY credentials explicitly issued to their email, userId, or registration number
+    const userEmail = (user.email || "").toLowerCase().trim();
+    const userReg = (user.registerNumber || "").toLowerCase().trim();
+    const userName = (user.name || "").toLowerCase().trim();
+    const userId = user.id;
+
+    return this.cache.credentials
+      .filter((c) => {
+        // Exclude demo credentials
+        if (c.registerNumber === "VIT2026DEMO" && !isDemoUser) return false;
+
+        // Match by explicit studentEmail
+        if (c.studentEmail && c.studentEmail.toLowerCase().trim() === userEmail) {
+          return true;
+        }
+
+        // Match by studentUserId
+        if (c.studentUserId && c.studentUserId === userId) {
+          return true;
+        }
+
+        // Match by exact registration number and name
+        if (userReg && c.registerNumber && c.registerNumber.toLowerCase().trim() === userReg) {
+          if (!userName || (c.studentName && c.studentName.toLowerCase().trim() === userName)) {
+            return true;
+          }
+        }
+
+        return false;
+      })
+      .reverse();
   }
 
   getAllCredentials() {

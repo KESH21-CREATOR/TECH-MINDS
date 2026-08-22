@@ -181,10 +181,19 @@ class CredentialController {
         });
       }
 
+      const studentEmail = (req.body.studentEmail || req.body.email || "").trim().toLowerCase();
+      let studentUserId = null;
+      if (studentEmail) {
+        const foundStudent = db.findUserByEmail(studentEmail);
+        if (foundStudent) studentUserId = foundStudent.id;
+      }
+
       // Store off-chain metadata in database
       const credentialRecord = {
         credentialId,
         studentName,
+        studentEmail: studentEmail || undefined,
+        studentUserId: studentUserId || undefined,
         registerNumber,
         programme,
         cgpa: cgpa || "N/A",
@@ -222,6 +231,56 @@ class CredentialController {
       return res.status(500).json({
         success: false,
         error: "Failed to issue credential: " + err.message
+      });
+    }
+  }
+
+  /**
+   * Get credentials belonging specifically to the currently authenticated student
+   * GET /api/credentials/my
+   */
+  async getMyCredentials(req, res) {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized. Please sign in to view your student wallet."
+        });
+      }
+
+      let credentials = [];
+      if (user.role === "Student") {
+        credentials = db.findCredentialsByStudent(user);
+      } else {
+        // Institution sees all credentials they issued
+        credentials = db.getAllCredentials();
+      }
+
+      const active = credentials.filter((c) => c.status === "ACTIVE").length;
+      const revoked = credentials.filter((c) => c.status === "REVOKED").length;
+
+      return res.json({
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          registerNumber: user.registerNumber,
+          programme: user.programme,
+          avatarUrl: user.avatarUrl
+        },
+        total: credentials.length,
+        active,
+        revoked,
+        data: credentials
+      });
+    } catch (err) {
+      console.error("getMyCredentials controller error:", err);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to retrieve student credentials: " + err.message
       });
     }
   }

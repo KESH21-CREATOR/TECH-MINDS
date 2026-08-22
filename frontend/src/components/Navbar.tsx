@@ -19,6 +19,7 @@ import {
 import { NetworkStatus } from "./NetworkStatus";
 import { MetaMaskButton } from "./MetaMaskButton";
 import { useAuth } from "../context/AuthContext";
+import { UserAvatar } from "./UserAvatar";
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -146,17 +147,14 @@ export const Navbar: React.FC = () => {
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="flex items-center gap-2 p-1.5 pl-2 pr-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-xl transition text-xs font-semibold text-slate-200"
                 >
-                  {user?.avatarUrl ? (
-                    <img
-                      src={user.avatarUrl}
-                      alt={user.name}
-                      className="w-6 h-6 rounded-lg object-cover border border-brand-500/50"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-brand-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs">
-                      {user?.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <UserAvatar
+                    name={user?.name || "User"}
+                    avatarType={user?.avatarType}
+                    avatarValue={user?.avatarValue}
+                    avatarUrl={user?.avatarUrl}
+                    size="sm"
+                    role={user?.role}
+                  />
                   <span className="hidden sm:inline max-w-[90px] truncate">{user?.name}</span>
                   <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
                     user?.role === "Institution"
@@ -174,17 +172,14 @@ export const Navbar: React.FC = () => {
                 {profileDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-56 p-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl space-y-1 z-50 animate-in fade-in zoom-in-95">
                     <div className="p-2.5 border-b border-slate-800 text-xs flex items-center gap-2.5">
-                      {user?.avatarUrl ? (
-                        <img
-                          src={user.avatarUrl}
-                          alt={user.name}
-                          className="w-8 h-8 rounded-xl object-cover border border-brand-500/40 shrink-0"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                          {user?.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                      <UserAvatar
+                        name={user?.name || "User"}
+                        avatarType={user?.avatarType}
+                        avatarValue={user?.avatarValue}
+                        avatarUrl={user?.avatarUrl}
+                        size="md"
+                        role={user?.role}
+                      />
                       <div className="overflow-hidden">
                         <div className="font-bold text-white truncate">{user?.name}</div>
                         <div className="text-[11px] text-slate-400 truncate">{user?.email}</div>

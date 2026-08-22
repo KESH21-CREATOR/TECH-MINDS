@@ -155,7 +155,12 @@ export const api = {
     return request<{ success: boolean; data: Credential }>(`/credentials/${encodeURIComponent(id)}`);
   },
 
-  // Get all credentials
+  // Get credentials belonging to the authenticated student
+  getMyCredentials: (): Promise<{ success: boolean; user: any; total: number; active: number; revoked: number; data: Credential[] }> => {
+    return request<{ success: boolean; user: any; total: number; active: number; revoked: number; data: Credential[] }>("/credentials/my");
+  },
+
+  // Get all credentials (Public Registry)
   getAllCredentials: (): Promise<{ success: boolean; total: number; active: number; revoked: number; data: Credential[] }> => {
     return request<{ success: boolean; total: number; active: number; revoked: number; data: Credential[] }>("/credentials");
   },

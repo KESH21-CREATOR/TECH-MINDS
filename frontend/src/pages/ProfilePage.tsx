@@ -21,25 +21,16 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { MetaMaskButton } from "../components/MetaMaskButton";
+import { UserAvatar } from "../components/UserAvatar";
+import { AvatarPickerModal } from "../components/AvatarPickerModal";
 import { api } from "../services/api";
-
-const PRESET_AVATARS = [
-  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
-];
 
 export const ProfilePage: React.FC = () => {
   const { user, signout, updateUser } = useAuth();
   const navigate = useNavigate();
 
-  const [selectedAvatar, setSelectedAvatar] = useState<string>(user?.avatarUrl || "");
-  const [saving, setSaving] = useState(false);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   if (!user) {
     return (
@@ -56,47 +47,20 @@ export const ProfilePage: React.FC = () => {
     );
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image file (PNG, JPG, WebP).");
-      return;
-    }
-
-    if (file.size > 3 * 1024 * 1024) {
-      setError("Image size should be less than 3MB.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setSelectedAvatar(event.target.result as string);
-        setError(null);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSaveAvatar = async () => {
-    setSaving(true);
-    setError(null);
-    setSaveSuccess(false);
-
+  const handleSaveAvatar = async (avatarData: {
+    avatarType: "initials" | "preset" | "upload";
+    avatarValue: string;
+    avatarUrl?: string;
+  }) => {
     try {
-      await api.updateProfile({ avatarUrl: selectedAvatar });
-      updateUser({ avatarUrl: selectedAvatar });
+      await api.updateProfile(avatarData);
+      updateUser(avatarData);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
-      // Fallback: save to local auth state
-      updateUser({ avatarUrl: selectedAvatar });
+      updateUser(avatarData);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -110,25 +74,27 @@ export const ProfilePage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div className="flex items-center gap-4">
-          <div className="relative group">
-            {selectedAvatar ? (
-              <img
-                src={selectedAvatar}
-                alt={user.name}
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-500/50 shadow-xl"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-xl">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div className="absolute -bottom-1 -right-1 p-1 bg-slate-900 border border-slate-700 rounded-full text-brand-400 shadow">
-              <Sparkles className="w-3 h-3" />
+          <div
+            onClick={() => setAvatarModalOpen(true)}
+            className="relative cursor-pointer group"
+            title="Click to change profile picture"
+          >
+            <UserAvatar
+              name={user.name}
+              avatarType={user.avatarType}
+              avatarValue={user.avatarValue}
+              avatarUrl={user.avatarUrl}
+              size="xl"
+              role={user.role}
+              className="group-hover:opacity-90 transition"
+            />
+            <div className="absolute -bottom-1 -right-1 p-1.5 bg-slate-900 border border-slate-700 rounded-full text-brand-400 shadow-md group-hover:scale-110 transition">
+              <Camera className="w-3.5 h-3.5" />
             </div>
           </div>
 
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-extrabold text-white">{user.name}</h1>
               {user.isDemo && (
                 <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
@@ -182,89 +148,38 @@ export const ProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Profile Picture / Avatar Customization Card */}
-      <div className="glass-card p-6 rounded-3xl border border-slate-800 space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <Camera className="w-4 h-4 text-brand-400" />
-              <span>Profile Picture & Avatar</span>
-            </h2>
-            <p className="text-xs text-slate-400">
-              Upload your personal photo or choose a Web3 profile avatar.
-            </p>
-          </div>
+      {/* Success alert */}
+      {saveSuccess && (
+        <div className="p-3.5 bg-emerald-950/40 border border-emerald-800/60 rounded-2xl text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Profile picture updated successfully!</span>
+        </div>
+      )}
 
-          {selectedAvatar !== user.avatarUrl && (
-            <button
-              onClick={handleSaveAvatar}
-              disabled={saving}
-              className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition shadow"
-            >
-              {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-              <span>Save Photo</span>
-            </button>
-          )}
+      {/* Profile Picture Card */}
+      <div className="glass-card p-6 rounded-3xl border border-slate-800 flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <Camera className="w-4 h-4 text-brand-400" />
+            <span>Profile Picture & Avatar</span>
+          </h2>
+          <p className="text-xs text-slate-400">
+            Choose from 8 built-in professional avatars, upload a personal photo, or snap a picture with your camera.
+          </p>
         </div>
 
-        {saveSuccess && (
-          <div className="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-xl text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Profile picture saved successfully!</span>
-          </div>
-        )}
-
-        {error && (
-          <div className="p-3 bg-rose-950/40 border border-rose-800/60 rounded-xl text-rose-300 text-xs">
-            {error}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-1">
-          {/* Upload Custom File */}
-          <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl text-center space-y-2 relative cursor-pointer hover:border-brand-500/50 transition">
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              onChange={handleFileUpload}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <div className="w-9 h-9 mx-auto rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center">
-              <Upload className="w-4 h-4" />
-            </div>
-            <div className="text-xs font-semibold text-slate-200">
-              Upload Custom Image
-            </div>
-            <div className="text-[10px] text-slate-500">PNG, JPG or WebP (Max 3MB)</div>
-          </div>
-
-          {/* Preset Avatar Selection */}
-          <div className="space-y-2">
-            <div className="text-[11px] font-semibold text-slate-400">Or choose a preset avatar:</div>
-            <div className="grid grid-cols-6 gap-2">
-              {PRESET_AVATARS.map((avatar, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    setSelectedAvatar(avatar);
-                    setError(null);
-                  }}
-                  className={`rounded-xl overflow-hidden border-2 transition hover:scale-105 ${
-                    selectedAvatar === avatar ? "border-brand-400 ring-2 ring-brand-500/30" : "border-slate-800 opacity-70 hover:opacity-100"
-                  }`}
-                >
-                  <img src={avatar} alt="Preset Avatar" className="w-full h-10 object-cover" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <button
+          onClick={() => setAvatarModalOpen(true)}
+          className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 transition flex items-center gap-2 shrink-0 shadow"
+        >
+          <Camera className="w-4 h-4 text-brand-400" />
+          <span>Change Avatar</span>
+        </button>
       </div>
 
       {/* Account Details Card */}
       <div className="glass-card p-6 rounded-3xl border border-slate-800 space-y-6">
-        <h2 className="text-xs font-bold text-white uppercase tracking-wider text-slate-400">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
           Account Profile & Permissions
         </h2>
 
@@ -272,13 +187,15 @@ export const ProfilePage: React.FC = () => {
           <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
             <div className="text-slate-400 text-[10px] uppercase font-bold">Assigned Platform Role</div>
             <div className="font-bold text-white flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${
-                user.role === "Institution"
-                  ? "bg-brand-500/20 text-brand-300 border border-brand-500/30"
-                  : user.role === "Student"
-                  ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-              }`}>
+              <span
+                className={`px-2 py-0.5 rounded-md text-xs font-bold ${
+                  user.role === "Institution"
+                    ? "bg-brand-500/20 text-brand-300 border border-brand-500/30"
+                    : user.role === "Student"
+                    ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                    : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                }`}
+              >
                 {user.role}
               </span>
             </div>
@@ -293,11 +210,15 @@ export const ProfilePage: React.FC = () => {
             <>
               <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
                 <div className="text-slate-400 text-[10px] uppercase font-bold">Registration / Roll Number</div>
-                <div className="font-mono font-bold text-white">{user.registerNumber || "VIT2026DEMO"}</div>
+                <div className="font-mono font-bold text-white">
+                  {user.registerNumber || "Pending Registration"}
+                </div>
               </div>
               <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
                 <div className="text-slate-400 text-[10px] uppercase font-bold">Programme / Degree</div>
-                <div className="font-semibold text-slate-200">{user.programme || "B.Tech Electronics & Comm."}</div>
+                <div className="font-semibold text-slate-200">
+                  {user.programme || "Academic Degree"}
+                </div>
               </div>
             </>
           )}
@@ -306,11 +227,15 @@ export const ProfilePage: React.FC = () => {
             <>
               <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
                 <div className="text-slate-400 text-[10px] uppercase font-bold">Authorized Institution</div>
-                <div className="font-bold text-white">{user.institutionName || "CredentialChain Autonomous University"}</div>
+                <div className="font-bold text-white">
+                  {user.institutionName || "CredentialChain Partner Institution"}
+                </div>
               </div>
               <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
                 <div className="text-slate-400 text-[10px] uppercase font-bold">Institution Code</div>
-                <div className="font-mono text-brand-300">{user.institutionCode || "CCU-DEMO-2026"}</div>
+                <div className="font-mono text-brand-300">
+                  {user.institutionCode || "INST-2026"}
+                </div>
               </div>
             </>
           )}
@@ -318,7 +243,9 @@ export const ProfilePage: React.FC = () => {
           {user.role === "Verifier" && (
             <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1 sm:col-span-2">
               <div className="text-slate-400 text-[10px] uppercase font-bold">Verification Organization</div>
-              <div className="font-bold text-white">{user.organizationName || "Global Background Verification Corp"}</div>
+              <div className="font-bold text-white">
+                {user.organizationName || "Independent Verification Agency"}
+              </div>
             </div>
           )}
 
@@ -327,7 +254,11 @@ export const ProfilePage: React.FC = () => {
               <Calendar className="w-3.5 h-3.5 text-indigo-400" /> Account Created
             </div>
             <div className="text-slate-200 font-mono text-[11px]">
-              {new Date(user.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+              {new Date(user.createdAt).toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+              })}
             </div>
           </div>
         </div>
@@ -345,7 +276,7 @@ export const ProfilePage: React.FC = () => {
               </span>
             </h2>
             <p className="text-[11px] text-slate-400">
-              MetaMask connection is optional. You can link your Web3 wallet address to your student or issuer profile.
+              MetaMask connection is optional. You can link your Web3 wallet address to your profile.
             </p>
           </div>
 
@@ -354,6 +285,16 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Avatar Picker Modal */}
+      {avatarModalOpen && (
+        <AvatarPickerModal
+          user={user}
+          isOpen={avatarModalOpen}
+          onClose={() => setAvatarModalOpen(false)}
+          onSave={handleSaveAvatar}
+        />
+      )}
     </div>
   );
 };
