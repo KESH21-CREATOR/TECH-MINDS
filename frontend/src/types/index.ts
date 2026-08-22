@@ -129,17 +129,45 @@ export interface AIChatMessage {
   topic?: string;
 }
 
+export interface ExtractedAttribute {
+  category: string;
+  label: string;
+  value: string;
+}
+
 export interface AIDocumentAnalysis {
   success: boolean;
   analysisTimestamp: string;
+  documentCategory?: string;
   documentType: string;
   detectedInstitution: string;
   detectedStudent: string;
   detectedRegisterNumber: string;
   detectedProgramme: string;
   detectedCgpa: string;
+  campus?: string;
   academicYear: string;
   issueDate: string;
+  personalDetails?: {
+    name: string;
+    fatherName?: string;
+    dob?: string;
+    gender?: string;
+    nationality?: string;
+  };
+  identityDetails?: {
+    aadharMasked?: string;
+    passportMasked?: string;
+    panMasked?: string;
+  };
+  academicScores?: {
+    tenthScore?: string;
+    twelfthScore?: string;
+    entranceRank?: string;
+    cgpa?: string;
+    percentage?: string;
+  };
+  extractedAttributes?: ExtractedAttribute[];
   documentConsistency: string;
   isConsistent: boolean;
   potentialIssues: string[];
