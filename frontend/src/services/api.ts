@@ -5,7 +5,12 @@ import {
   DemoPrefillData,
   DemoCredentialItem,
   AIDocumentAnalysis,
-  AIVerdictExplanation
+  AIVerdictExplanation,
+  User,
+  AuthResponse,
+  SignInCredentials,
+  SignUpCredentials,
+  UserRole
 } from "../types";
 
 const API_BASE_URL = "/api";
@@ -25,7 +30,16 @@ class ApiError extends Error {
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   try {
-    const res = await fetch(url, options);
+    const token = localStorage.getItem("credentialchain_token");
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string> || {})
+    };
+
+    if (token && !headers["Authorization"]) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(url, { ...options, headers });
     
     let data: any = {};
     const text = await res.text();
@@ -47,7 +61,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     }
     console.error(`Network error requesting ${url}:`, err);
     throw new ApiError(
-      `Unable to reach CredentialChain API at http://localhost:4000. Please ensure the backend server and Hardhat node are running.`,
+      `Unable to reach CredentialChain API. Please ensure the backend server and Hardhat node are running.`,
       0,
       { originalError: err.message }
     );
@@ -55,14 +69,45 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
+  // Authentication
+  signin: (credentials: SignInCredentials): Promise<AuthResponse> => {
+    return request<AuthResponse>("/auth/signin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials)
+    });
+  },
+
+  signup: (userData: SignUpCredentials): Promise<AuthResponse> => {
+    return request<AuthResponse>("/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData)
+    });
+  },
+
+  demoLogin: (role: UserRole): Promise<AuthResponse> => {
+    return request<AuthResponse>("/auth/demo-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role })
+    });
+  },
+
+  getMe: (token?: string): Promise<{ success: boolean; user: User }> => {
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    return request<{ success: boolean; user: User }>("/auth/me", { headers });
+  },
+
   // Health Check
   getHealth: (): Promise<HealthStatus> => {
     return request<HealthStatus>("/health");
   },
 
   // Issue Credential (multipart/form-data)
-  issueCredential: (formData: FormData): Promise<{ success: boolean; data: Credential; message: string }> => {
-    return request<{ success: boolean; data: Credential; message: string }>("/credentials/issue", {
+  issueCredential: (formData: FormData): Promise<{ success: boolean; data: Credential; message: string; alreadyRegistered?: boolean }> => {
+    return request<{ success: boolean; data: Credential; message: string; alreadyRegistered?: boolean }>("/credentials/issue", {
       method: "POST",
       body: formData
     });

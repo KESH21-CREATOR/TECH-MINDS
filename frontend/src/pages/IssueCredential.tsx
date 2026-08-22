@@ -488,8 +488,15 @@ export const IssueCredential: React.FC = () => {
                   className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 focus:outline-none focus:border-brand-500"
                 >
                   <option value="Academic Transcript">Academic Transcript</option>
-                  <option value="Degree Certificate">Degree Certificate</option>
-                  <option value="Migration Certificate">Migration Certificate</option>
+                  <option value="Admission Acceptance Letter">Admission Acceptance Letter / Offer Letter</option>
+                  <option value="Degree Certificate">Degree Certificate / Diploma</option>
+                  <option value="Migration Certificate">Migration Certificate / Transfer Certificate</option>
+                  <option value="10th Secondary School Marksheet">10th Secondary School Marksheet</option>
+                  <option value="12th Higher Secondary Marksheet">12th Higher Secondary Marksheet</option>
+                  <option value="Bonafide Certificate">Bonafide Certificate</option>
+                  <option value="Entrance Scorecard">Entrance Scorecard / Rank Certificate</option>
+                  <option value="National Identity Proof">National Identity Proof / Aadhaar</option>
+                  <option value="Official Academic Record">Official Academic Record (General)</option>
                 </select>
               </div>
 

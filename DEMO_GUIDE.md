@@ -1,73 +1,71 @@
-# 🏆 CredentialChain - Hackathon 3-Minute Live Pitch & Demo Script
+# 🏆 CredentialChain - Hackathon Live Pitch & Demo Script
 
-> **Problem:** Academic credential fraud costs billions and manual verification takes weeks.  
-> **Solution:** Decentralized SHA-256 cryptographic anchoring on Ethereum with AI-assisted explanation.
-
----
-
-## ⏱️ 3-Minute Live Presentation Script
-
-### 🎙️ [0:00 - 0:30] Introduction & The Fraud Problem
-*"Good morning judges. Today, students wait weeks for university registrars to verify transcripts, while employers and embassies struggle to detect forged PDFs with inflated CGPAs.*
-
-*We built **CredentialChain** to solve this: a system combining **cryptographic blockchain proof** with **AI-assisted document understanding**."*
+> **Problem:** Academic credential fraud costs billions annually, while students wait weeks for manual registrar verification.  
+> **Solution:** Decentralized SHA-256 cryptographic anchoring on Ethereum, role-based sovereign authentication, and universal AI document intelligence.
 
 ---
 
-### 🏛️ [0:30 - 1:15] Step 1: Institutional Issuance
-1. Open **[http://localhost:5173/institution/issue](http://localhost:5173/institution/issue)**.
-2. Click **"Browse 10 Demo Profiles"** and select **Aarav Sharma (B.Tech CSE, 8.72 CGPA)**.
-3. Show the instant client-side **256-bit SHA-256 fingerprint**.
-4. Click **"Issue Credential & Register on Blockchain"**.
-5. Point out:
-   - Real Ethereum transaction hash
-   - Block height
-   - Privacy guarantee: **The raw PDF and student PII stay 100% off-chain. Only the cryptographic hash is anchored.**
+## ⏱️ 3-Minute Presentation & Demo Script
+
+### 🎙️ [0:00 - 0:30] Introduction & Problem
+*"Good morning judges. Today, students wait weeks for universities to prove their degrees are authentic, while employers and embassies struggle to detect forged PDFs with altered grades.*
+
+*We built **CredentialChain**: a decentralized platform combining **cryptographic Ethereum proofs**, **role-based sovereign accounts**, and **universal AI document intelligence**."*
 
 ---
 
-### 📱 [1:15 - 1:45] Step 2: Student Wallet & Sovereign Ownership
-1. Open **[http://localhost:5173/student](http://localhost:5173/student)**.
-2. Show Aarav's digital credential card with green **ACTIVE** status.
-3. Click **"QR Code"**:
-   - Toggle to **Mobile Scan (Wi-Fi)** and show how an employer can scan it with their smartphone camera.
+### 🔐 [0:30 - 1:00] Step 1: Role-Based Authentication & Demo Mode
+1. Open **[http://localhost:5173/signin](http://localhost:5173/signin)**.
+2. Highlight the **Demo Mode (1-Click Hackathon Logins)**:
+   - Click **[ Institution Demo ]** → Instantly logs in as *Dr. Arvind Registrar*.
+3. Show the **Institution Dashboard** with live metrics on issued, active, and revoked credentials.
 
 ---
 
-### 🔍 [1:45 - 2:30] Step 3: Instant Cryptographic Verification & AI Analysis
-1. Open **[http://localhost:5173/verify](http://localhost:5173/verify)**.
-2. Click **"Authentic Transcript (Aarav Sharma)"** → Verify:
-   - **Result:** **🟢 VERIFIED AUTHENTIC** *(100% SHA-256 match in < 1 second)*.
-3. Click **"Explain this result with AI"**:
-   - Show how CredentialChain AI translates the mathematical hash match into plain English.
+### 🏛️ [1:00 - 1:45] Step 2: Issuing with Expanded Credential Types
+1. Go to **Issue Credential** (`/institution/issue`).
+2. Point out the **10 Credential Types** (Transcripts, Admission Letters, 10th/12th Marksheets, Bonafide, Degree Certificates).
+3. Click **"Browse 10 Demo Profiles"** → Select **Aarav Sharma (B.Tech CSE)**.
+4. Click **"Issue Credential & Register on Blockchain"** → Show real Ethereum transaction hash and block number.
+5. Emphasize: **Zero PII is stored on-chain. Only the 256-bit SHA-256 fingerprint is anchored.**
+
+---
+
+### 📱 [1:45 - 2:15] Step 3: Student Sovereign Ownership & QR Sharing
+1. Click profile avatar in Navbar → Click **Sign Out**.
+2. On Sign In page, click **[ Student Demo ]** → Instantly logs in as *Keshav Demo*.
+3. View the **Student Wallet** (`/student`) with active certificate cards.
+4. Open the **QR Code Modal**:
+   - Toggle to **Mobile Scan (Wi-Fi)** for live smartphone camera verification.
+
+---
+
+### 🔍 [2:15 - 2:50] Step 4: Verification & Universal AI Document Intelligence
+1. Navigate to **Verifier Portal** (`/verify`).
+2. Test **Authentic Document** → Result: **🟢 VERIFIED AUTHENTIC** *(100% SHA-256 match in < 1 second)*.
+3. Click **"Explain this result with AI"** → AI explains the cryptographic proof.
 4. Click **"Analyze Document with AI"**:
-   - Show the structured AI Document Analysis card (Detected Student, CGPA: 8.72, Consistency: ✓ Consistent, Confidence: 95%).
-   - Highlight: *"AI assists with structural insights, but cryptographic proof is the definitive trust layer."*
+   - Show the **Universal Document Intelligence Card**:
+     - Candidate Profile (Name, Masked Aadhaar `XXXX-XXXX-1234`, DOB)
+     - 10th / 12th Board Marks & Entrance Ranks (VITEEE / JEE)
+     - Admission & Campus details (VIT Vellore Campus)
+     - Interactive **"All Fields"** dictionary table
+5. Test **Tampered Document** (8.72 → 9.72) → Result: **🔴 TAMPER DETECTED**.
 
 ---
 
-### ⚠️ [2:30 - 2:50] Step 4: Live Tamper Detection
-1. In the Verifier Portal, click **"Tampered Transcript (Altered to 9.72)"** → Verify:
-   - **Result:** **🔴 TAMPER DETECTED**.
-2. Point out the SHA-256 avalanche effect: Modifying a single character completely alters the hash.
-3. Click **"Explain why this is tampered with AI"** → AI explains the cryptographic mismatch.
-
----
-
-### 🤖 [2:50 - 3:00] Step 5: CredentialChain AI Assistant & Conclusion
-1. Click the floating **CredentialChain AI** button in the bottom-right corner.
-2. Ask: *"Why is blockchain used?"* or *"Is my transcript private?"*.
+### 🤖 [2:50 - 3:00] Step 5: Role-Personalized AI Assistant & Conclusion
+1. Open floating **CredentialChain AI** in the bottom-right corner.
+2. Ask: *"Why is blockchain used?"* or *"Is my transcript stored on blockchain?"*.
 3. Conclude:
-   *"With CredentialChain, academic credentials are owned by students, verified in seconds, and explainable with AI. Thank you!"*
+   *"With CredentialChain, credentials are mathematically proven on blockchain, owned by students, and understood with AI. Thank you!"*
 
 ---
 
-## 🛠️ Demo Asset Quick Reference
+## 🔑 Demo Account Credentials Quick Reference
 
-| Action | File to Pick | Expected Verdict |
-|---|---|---|
-| **Authentic Verification** | `Demo_Transcript_Aarav_Sharma.pdf` | 🟢 **VERIFIED AUTHENTIC** |
-| **Authentic Verification 2** | `Demo_Transcript_Priya_Menon.pdf` | 🟢 **VERIFIED AUTHENTIC** |
-| **Tamper Detection 1** | `Demo_Transcript_Aarav_Sharma_Tampered.pdf` | 🔴 **TAMPER DETECTED** (8.72 → 9.72) |
-| **Tamper Detection 2** | `Demo_Transcript_Priya_Menon_Tampered.pdf` | 🔴 **TAMPER DETECTED** (9.12 → 9.99) |
-| **Revocation Test** | Revoke via `/institution` | 🟠 **CREDENTIAL REVOKED** |
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| **Student** | `student@credentialchain.demo` | `Demo@123` |
+| **Institution** | `institution@credentialchain.demo` | `Demo@123` |
+| **Verifier** | `verifier@credentialchain.demo` | `Demo@123` |

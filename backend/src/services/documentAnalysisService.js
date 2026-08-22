@@ -195,12 +195,22 @@ class DocumentAnalysisService {
     let passportMasked = "";
     let panMasked = "";
 
-    // Aadhaar matching (12 digits e.g. 1234 5678 9012 or 123456789012)
-    const aadharRegex = /\b(\d{4}\s*\d{4}\s*\d{4})\b/;
-    const aadharMatch = text.match(aadharRegex);
-    if (aadharMatch && aadharMatch[1]) {
-      const digits = aadharMatch[1].replace(/\s+/g, "");
-      aadharMasked = `XXXX-XXXX-${digits.slice(-4)}`;
+    // Aadhaar matching (12 digits e.g. 1234 5678 9012, 1234-5678-9012, or 123456789012 with labels)
+    const aadharExplicitRegex = /(?:Aadhaar|Aadhar|UIDAI|UID|Aadhaar No|Aadhar No|Unique ID|Aadhaar Card)\s*[:.\-#]?\s*(\d{4}\s*[-]?\s*\d{4}\s*[-]?\s*\d{4}|\d{12})/i;
+    const aadharExplicitMatch = text.match(aadharExplicitRegex);
+    if (aadharExplicitMatch && aadharExplicitMatch[1]) {
+      const digits = aadharExplicitMatch[1].replace(/[\s-]+/g, "");
+      if (digits.length >= 12) {
+        aadharMasked = `XXXX-XXXX-${digits.slice(-4)}`;
+      }
+    } else {
+      const aadharGenericMatch = text.match(/\b(\d{4}\s*[-]?\s*\d{4}\s*[-]?\s*\d{4})\b/);
+      if (aadharGenericMatch && aadharGenericMatch[1]) {
+        const digits = aadharGenericMatch[1].replace(/[\s-]+/g, "");
+        if (digits.length === 12) {
+          aadharMasked = `XXXX-XXXX-${digits.slice(-4)}`;
+        }
+      }
     }
 
     // Passport Number (1 letter + 7 digits e.g. A1234567)

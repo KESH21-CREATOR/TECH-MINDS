@@ -1,5 +1,48 @@
 export type CredentialStatus = "ACTIVE" | "REVOKED";
 
+export type UserRole = "Student" | "Institution" | "Verifier";
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  institutionName?: string;
+  institutionCode?: string;
+  registerNumber?: string;
+  programme?: string;
+  organizationName?: string;
+  walletAddress?: string | null;
+  isDemo?: boolean;
+  createdAt: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message?: string;
+  token?: string;
+  user?: User;
+  error?: string;
+}
+
+export interface SignInCredentials {
+  email: string;
+  password?: string;
+}
+
+export interface SignUpCredentials {
+  name: string;
+  email: string;
+  password?: string;
+  role: UserRole;
+  institutionName?: string;
+  institutionCode?: string;
+  registerNumber?: string;
+  programme?: string;
+  organizationName?: string;
+  walletAddress?: string;
+}
+
 export interface Credential {
   credentialId: string;
   studentName: string;

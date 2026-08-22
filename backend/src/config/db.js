@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const bcrypt = require("bcryptjs");
 
 const DB_DIR = path.join(__dirname, "../../data");
 const DB_FILE = path.join(DB_DIR, "credentials.json");
@@ -11,7 +12,7 @@ if (!fs.existsSync(DB_DIR)) {
 
 // Initialize database file if it doesn't exist
 if (!fs.existsSync(DB_FILE)) {
-  fs.writeFileSync(DB_FILE, JSON.stringify({ credentials: [], auditLogs: [] }, null, 2), "utf8");
+  fs.writeFileSync(DB_FILE, JSON.stringify({ credentials: [], auditLogs: [], users: [] }, null, 2), "utf8");
 }
 
 class JsonDatabase {
@@ -19,6 +20,7 @@ class JsonDatabase {
     this.filePath = filePath;
     this.cache = null;
     this.load();
+    this.seedDemoUsers();
   }
 
   load() {
@@ -26,12 +28,15 @@ class JsonDatabase {
       if (fs.existsSync(this.filePath)) {
         const raw = fs.readFileSync(this.filePath, "utf8");
         this.cache = JSON.parse(raw);
+        if (!this.cache.credentials) this.cache.credentials = [];
+        if (!this.cache.auditLogs) this.cache.auditLogs = [];
+        if (!this.cache.users) this.cache.users = [];
       } else {
-        this.cache = { credentials: [], auditLogs: [] };
+        this.cache = { credentials: [], auditLogs: [], users: [] };
       }
     } catch (err) {
       console.error("Database load error, initializing fresh store:", err.message);
-      this.cache = { credentials: [], auditLogs: [] };
+      this.cache = { credentials: [], auditLogs: [], users: [] };
     }
   }
 
@@ -44,6 +49,122 @@ class JsonDatabase {
       console.error("Database atomic save error:", err.message);
       fs.writeFileSync(this.filePath, JSON.stringify(this.cache, null, 2), "utf8");
     }
+  }
+
+  // --- Users & Authentication Collection ---
+  seedDemoUsers() {
+    try {
+      const demoUsers = [
+        {
+          id: "USR-STUDENT-DEMO-001",
+          name: "Keshav Demo",
+          email: "student@credentialchain.demo",
+          passwordHash: bcrypt.hashSync("Demo@123", 10),
+          role: "Student",
+          registerNumber: "VIT2026DEMO",
+          programme: "B.Tech Electronics & Communication Engineering",
+          walletAddress: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          isDemo: true,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: "USR-INSTITUTION-DEMO-002",
+          name: "Dr. Arvind Registrar",
+          email: "institution@credentialchain.demo",
+          passwordHash: bcrypt.hashSync("Demo@123", 10),
+          role: "Institution",
+          institutionName: "CredentialChain Autonomous University",
+          institutionCode: "CCU-DEMO-2026",
+          issuerAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+          isDemo: true,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: "USR-VERIFIER-DEMO-003",
+          name: "Global Background Verifier",
+          email: "verifier@credentialchain.demo",
+          passwordHash: bcrypt.hashSync("Demo@123", 10),
+          role: "Verifier",
+          organizationName: "Global Talent & Background Verification Corp",
+          isDemo: true,
+          createdAt: new Date().toISOString()
+        }
+      ];
+
+      let modified = false;
+      for (const demo of demoUsers) {
+        const existingIdx = this.cache.users.findIndex((u) => u.email.toLowerCase() === demo.email.toLowerCase());
+        if (existingIdx === -1) {
+          this.cache.users.push(demo);
+          modified = true;
+        } else {
+          // Always refresh demo credentials so Demo@123 always works
+          this.cache.users[existingIdx] = {
+            ...this.cache.users[existingIdx],
+            ...demo,
+            passwordHash: demo.passwordHash
+          };
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        this.save();
+        console.log("[DB] Pre-seeded / verified all 3 demo accounts (Student, Institution, Verifier).");
+      }
+    } catch (err) {
+      console.warn("Demo user seed warning:", err.message);
+    }
+  }
+
+  findUserByEmail(email) {
+    if (!email) return null;
+    this.load();
+    return this.cache.users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase()) || null;
+  }
+
+  findUserById(id) {
+    if (!id) return null;
+    this.load();
+    return this.cache.users.find((u) => u.id === id) || null;
+  }
+
+  createUser(userData) {
+    this.load();
+    const existing = this.findUserByEmail(userData.email);
+    if (existing) {
+      throw new Error(`Email "${userData.email}" is already registered. Please sign in.`);
+    }
+
+    const record = {
+      id: `USR-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+      ...userData,
+      createdAt: new Date().toISOString()
+    };
+
+    this.cache.users.push(record);
+    this.save();
+    return record;
+  }
+
+  updateUser(id, updates) {
+    this.load();
+    const idx = this.cache.users.findIndex((u) => u.id === id);
+    if (idx === -1) return null;
+
+    this.cache.users[idx] = {
+      ...this.cache.users[idx],
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+
+    this.save();
+    return this.cache.users[idx];
+  }
+
+  getAllUsers() {
+    this.load();
+    return this.cache.users.map(({ passwordHash, ...safeUser }) => safeUser);
   }
 
   // --- Credentials Collection ---
