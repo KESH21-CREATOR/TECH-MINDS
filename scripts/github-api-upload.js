@@ -56,7 +56,7 @@ function getAllFiles(dir, baseDir = dir) {
   return files;
 }
 
-async function githubRequest(endpoint, method = "GET", body = null) {
+async function githubRequest(endpoint, method = "GET", body = null, retries = 3) {
   const url = `https://api.github.com${endpoint}`;
   const headers = {
     "Accept": "application/vnd.github+json",
@@ -71,14 +71,28 @@ async function githubRequest(endpoint, method = "GET", body = null) {
     headers["Content-Type"] = "application/json";
   }
 
-  const res = await fetch(url, options);
-  const data = await res.json().catch(() => ({}));
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      const data = await res.json().catch(() => ({}));
 
-  if (!res.ok) {
-    throw new Error(`GitHub API [${res.status}] ${endpoint}: ${data.message || JSON.stringify(data)}`);
+      if (!res.ok) {
+        if (attempt < retries && (res.status >= 500 || res.status === 400 || res.status === 403)) {
+          await new Promise((r) => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+        throw new Error(`GitHub API [${res.status}] ${endpoint}: ${data.message || JSON.stringify(data)}`);
+      }
+
+      return data;
+    } catch (err) {
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
+        continue;
+      }
+      throw err;
+    }
   }
-
-  return data;
 }
 
 async function main() {
