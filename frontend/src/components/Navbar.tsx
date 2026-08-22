@@ -20,6 +20,7 @@ import { NetworkStatus } from "./NetworkStatus";
 import { MetaMaskButton } from "./MetaMaskButton";
 import { useAuth } from "../context/AuthContext";
 import { UserAvatar } from "./UserAvatar";
+import { AccessibilityMenu } from "./AccessibilityMenu";
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -121,6 +122,7 @@ export const Navbar: React.FC = () => {
 
           {/* Right Action & Status */}
           <div className="flex items-center gap-2 sm:gap-3">
+            <AccessibilityMenu />
             <MetaMaskButton />
             <NetworkStatus />
 

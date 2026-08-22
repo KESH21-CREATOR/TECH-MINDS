@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { AccessibilityProvider } from "./context/AccessibilityContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
@@ -18,42 +19,49 @@ import { AIChatbot } from "./components/AIChatbot";
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="flex flex-col min-h-screen">
-          <Navbar />
-          <main className="flex-grow">
-            <Routes>
-              {/* Core Application Pages */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/signin" element={<SignInPage />} />
-              <Route path="/signup" element={<SignUpPage />} />
-              <Route path="/institution" element={<InstitutionDashboard />} />
-              <Route path="/institution/issue" element={<IssueCredential />} />
-              <Route path="/student" element={<StudentWallet />} />
-              <Route path="/verify" element={<VerifierPortal />} />
-              <Route path="/credentials" element={<CredentialExplorer />} />
-              <Route path="/about" element={<AboutPage />} />
+    <AccessibilityProvider>
+      <AuthProvider>
+        <Router>
+          <div className="flex flex-col min-h-screen">
+            {/* Accessible Skip Link for Keyboard / Screen Reader users */}
+            <a href="#main-content" className="skip-link">
+              Skip to main content
+            </a>
 
-              {/* Profile Route */}
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
+            <Navbar />
+            <main id="main-content" className="flex-grow focus:outline-none" tabIndex={-1}>
+              <Routes>
+                {/* Core Application Pages */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/signin" element={<SignInPage />} />
+                <Route path="/signup" element={<SignUpPage />} />
+                <Route path="/institution" element={<InstitutionDashboard />} />
+                <Route path="/institution/issue" element={<IssueCredential />} />
+                <Route path="/student" element={<StudentWallet />} />
+                <Route path="/verify" element={<VerifierPortal />} />
+                <Route path="/credentials" element={<CredentialExplorer />} />
+                <Route path="/about" element={<AboutPage />} />
 
-              <Route path="*" element={<LandingPage />} />
-            </Routes>
-          </main>
-          <Footer />
-          {/* Global Floating AI Assistant */}
-          <AIChatbot />
-        </div>
-      </Router>
-    </AuthProvider>
+                {/* Profile Route */}
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute requireAuth={true}>
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route path="*" element={<LandingPage />} />
+              </Routes>
+            </main>
+            <Footer />
+            {/* Global Floating AI Assistant */}
+            <AIChatbot />
+          </div>
+        </Router>
+      </AuthProvider>
+    </AccessibilityProvider>
   );
 };
 

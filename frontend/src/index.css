@@ -11,6 +11,16 @@
       radial-gradient(circle at 0% 100%, rgba(56, 189, 248, 0.04) 0%, transparent 40%);
     background-attachment: fixed;
   }
+
+  /* Accessible Focus Rings */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #38bdf8 !important;
+    outline-offset: 2px !important;
+  }
 }
 
 /* Glassmorphic card styling */
@@ -66,4 +76,78 @@
 
 .glow-brand {
   box-shadow: 0 0 25px -3px rgba(12, 142, 233, 0.35);
+}
+
+/* ======================================================== */
+/* WCAG 2.1 AA ACCESSIBILITY ENHANCEMENTS                  */
+/* ======================================================== */
+
+/* High Contrast Mode */
+html.a11y-high-contrast {
+  filter: contrast(115%);
+}
+
+html.a11y-high-contrast body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+html.a11y-high-contrast .glass-card {
+  background: #000000 !important;
+  border: 2px solid #ffffff !important;
+}
+
+html.a11y-high-contrast button,
+html.a11y-high-contrast a {
+  border-color: #ffffff !important;
+}
+
+html.a11y-high-contrast .text-slate-400,
+html.a11y-high-contrast .text-slate-500 {
+  color: #e2e8f0 !important;
+}
+
+/* Text Scaling */
+html.a11y-text-large {
+  font-size: 115% !important;
+}
+
+html.a11y-text-xlarge {
+  font-size: 130% !important;
+}
+
+/* Reduced Motion Mode */
+html.a11y-reduced-motion *,
+html.a11y-reduced-motion *::before,
+html.a11y-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+  transform: none !important;
+}
+
+/* Dyslexia-Friendly Text */
+html.a11y-dyslexia-friendly {
+  letter-spacing: 0.08em !important;
+  word-spacing: 0.16em !important;
+  line-height: 1.8 !important;
+}
+
+/* Skip to Main Content Link for Keyboard / Screen Readers */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  background: #0284c7;
+  color: #ffffff;
+  padding: 0.75rem 1.25rem;
+  z-index: 9999;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
 }
