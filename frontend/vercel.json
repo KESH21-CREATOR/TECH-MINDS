@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "projectId": "prj_U5E4JrCTRdHFuOGDUEEmDtLJo5tp",
+  "framework": "vite",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

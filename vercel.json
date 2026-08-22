@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "projectId": "prj_U5E4JrCTRdHFuOGDUEEmDtLJo5tp",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "vite",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
